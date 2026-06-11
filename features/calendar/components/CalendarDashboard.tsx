@@ -45,7 +45,7 @@ export function CalendarDashboard() {
 
   const [showEventSummary, setShowEventSummary] = useState(false);
   const [showEventList, setShowEventList] = useState(false);
-
+  const [calendarName, setCalendarName] = useState("Teamup Calendar");
   async function loadEvents() {
     setLoadingEvents(true);
 
@@ -69,7 +69,20 @@ export function CalendarDashboard() {
   const filteredEvents = useMemo(() => {
     return events.filter((event) => !excludedTitles.includes(event.title));
   }, [events, excludedTitles]);
+  useEffect(() => {
+    async function loadCalendarName() {
+      try {
+        const res = await fetch("/api/teamup/calendar");
+        const data = await res.json();
 
+        setCalendarName(data.name ?? "Teamup Calendar");
+      } catch {
+        setCalendarName("Teamup Calendar");
+      }
+    }
+
+    loadCalendarName();
+  }, []);
   return (
     <div className="space-y-6 sm:space-y-8">
       <section className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5 sm:p-6">
