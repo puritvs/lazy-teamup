@@ -164,7 +164,12 @@ export function CalendarDashboard() {
         )}
       </section>
       <div className="grid gap-6 xl:grid-cols-[500px_1fr]">
-        <OverlapSummary events={filteredEvents} dateFormat={dateFormat} />
+        <OverlapSummary
+          events={filteredEvents}
+          dateFormat={dateFormat}
+          year={year}
+          month={month}
+        />
         <AvailableQueFinder events={filteredEvents} dateFormat={dateFormat} />
       </div>
       <section className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5 sm:p-6">
