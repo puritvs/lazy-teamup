@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { findAvailableQue } from "../services/findAvailableQue";
 import { EventForAvailability } from "../types";
 import { DateDisplayFormat, formatDate } from "@/utils/date";
@@ -11,7 +11,118 @@ type Props = {
 };
 
 const DEFAULT_LOCATION = "Default office";
+const TRAVEL_BUFFER_STORAGE_KEY = "lazy-teamup-travel-buffers";
 
+type TravelBuffer = {
+  from: number;
+  to: number;
+};
+
+type TravelBufferMap = Record<string, TravelBuffer>;
+function loadTravelBuffers(): TravelBufferMap {
+  if (typeof window === "undefined") return {};
+
+  const saved = localStorage.getItem(TRAVEL_BUFFER_STORAGE_KEY);
+
+  if (!saved) return {};
+
+  try {
+    return JSON.parse(saved) as TravelBufferMap;
+  } catch {
+    return {};
+  }
+}
+
+function saveTravelBuffers(buffers: TravelBufferMap) {
+  localStorage.setItem(TRAVEL_BUFFER_STORAGE_KEY, JSON.stringify(buffers));
+}
+function getUniqueNonDefaultLocations(events: EventForAvailability[]) {
+  return Array.from(
+    new Set(
+      events
+        .map((event) => extractLocationFromTitle(event.title))
+        .filter((location) => location !== DEFAULT_LOCATION),
+    ),
+  ).sort();
+}
+function addMinutesToTime(time: string, minutes: number) {
+  const [hour, minute] = time.split(":").map(Number);
+  const date = new Date(2000, 0, 1, hour, minute);
+  date.setMinutes(date.getMinutes() + minutes);
+
+  return `${String(date.getHours()).padStart(2, "0")}:${String(
+    date.getMinutes(),
+  ).padStart(2, "0")}`;
+}
+
+function subtractMinutesFromTime(time: string, minutes: number) {
+  const [hour, minute] = time.split(":").map(Number);
+  const date = new Date(2000, 0, 1, hour, minute);
+  date.setMinutes(date.getMinutes() - minutes);
+
+  return `${String(date.getHours()).padStart(2, "0")}:${String(
+    date.getMinutes(),
+  ).padStart(2, "0")}`;
+}
+
+function getDurationMinutes(start: string, end: string) {
+  const [startHour, startMinute] = start.split(":").map(Number);
+  const [endHour, endMinute] = end.split(":").map(Number);
+
+  return endHour * 60 + endMinute - (startHour * 60 + startMinute);
+}
+
+function getAdjustedSlot(
+  slot: {
+    start: string;
+    end: string;
+    durationMinutes?: number;
+  },
+  date: string,
+  events: EventForAvailability[],
+  travelBuffers: TravelBufferMap,
+  applyTravelBuffers: boolean,
+) {
+  const travelContext = getSlotTravelContext(slot, date, events);
+
+  if (!applyTravelBuffers || !travelContext.requiresTravel) {
+    return {
+      ...slot,
+      originalStart: slot.start,
+      originalEnd: slot.end,
+      travelContext,
+      adjusted: false,
+    };
+  }
+
+  const fromBuffer = travelContext.requiresTravelBefore
+    ? (travelBuffers[travelContext.previousLocation]?.from ?? 30)
+    : 0;
+
+  const toBuffer = travelContext.requiresTravelAfter
+    ? (travelBuffers[travelContext.nextLocation]?.to ?? 30)
+    : 0;
+
+  const adjustedStart = addMinutesToTime(slot.start, fromBuffer);
+  const adjustedEnd = subtractMinutesFromTime(slot.end, toBuffer);
+  const adjustedDurationMinutes = getDurationMinutes(
+    adjustedStart,
+    adjustedEnd,
+  );
+
+  return {
+    ...slot,
+    start: adjustedStart,
+    end: adjustedEnd,
+    durationMinutes: adjustedDurationMinutes,
+    originalStart: slot.start,
+    originalEnd: slot.end,
+    travelContext,
+    fromBuffer,
+    toBuffer,
+    adjusted: fromBuffer > 0 || toBuffer > 0,
+  };
+}
 function getToday() {
   return new Date().toISOString().slice(0, 10);
 }
@@ -194,7 +305,15 @@ export function AvailableQueFinder({ events, dateFormat }: Props) {
   const [showOnlyTravelSlots, setShowOnlyTravelSlots] = useState(false);
 
   const minDurationMinutes = minDurationHours * 60 + minDurationMins;
-
+  const [applyTravelBuffers, setApplyTravelBuffers] = useState(true);
+  const [travelBuffers, setTravelBuffers] = useState<TravelBufferMap>(() =>
+    loadTravelBuffers(),
+  );
+  const [showTravelBufferSettings, setShowTravelBufferSettings] =
+    useState(false);
+  const detectedLocations = useMemo(() => {
+    return getUniqueNonDefaultLocations(events);
+  }, [events]);
   const error = useMemo(() => {
     if (startDate > endDate) {
       return "Start date cannot be after end date.";
@@ -234,20 +353,36 @@ export function AvailableQueFinder({ events, dateFormat }: Props) {
   ]);
 
   const displayedAvailableDays = useMemo(() => {
-    if (!showOnlyTravelSlots) {
-      return availableDays;
-    }
-
     return availableDays
       .map((day) => ({
         ...day,
-        slots: day.slots.filter((slot) => {
-          const travelContext = getSlotTravelContext(slot, day.date, events);
-          return travelContext.requiresTravel;
-        }),
+        slots: day.slots
+          .map((slot) =>
+            getAdjustedSlot(
+              slot,
+              day.date,
+              events,
+              travelBuffers,
+              applyTravelBuffers,
+            ),
+          )
+          .filter((slot) => {
+            if (showOnlyTravelSlots && !slot.travelContext.requiresTravel) {
+              return false;
+            }
+
+            return (slot.durationMinutes ?? 0) >= minDurationMinutes;
+          }),
       }))
       .filter((day) => day.slots.length > 0);
-  }, [availableDays, showOnlyTravelSlots, events]);
+  }, [
+    availableDays,
+    events,
+    travelBuffers,
+    applyTravelBuffers,
+    showOnlyTravelSlots,
+    minDurationMinutes,
+  ]);
 
   const totalSlots = displayedAvailableDays.reduce(
     (sum, day) => sum + day.slots.length,
@@ -258,7 +393,47 @@ export function AvailableQueFinder({ events, dateFormat }: Props) {
     displayedAvailableDays,
     events,
   );
+  function updateTravelBuffer(
+    location: string,
+    key: keyof TravelBuffer,
+    value: number,
+  ) {
+    setTravelBuffers((current) => {
+      const next = {
+        ...current,
+        [location]: {
+          from: current[location]?.from ?? 30,
+          to: current[location]?.to ?? 30,
+          [key]: Math.max(0, value),
+        },
+      };
 
+      saveTravelBuffers(next);
+      return next;
+    });
+  }
+  useEffect(() => {
+    setTravelBuffers((current) => {
+      const next = { ...current };
+      let changed = false;
+
+      for (const location of detectedLocations) {
+        if (!next[location]) {
+          next[location] = {
+            from: 30,
+            to: 30,
+          };
+          changed = true;
+        }
+      }
+
+      if (changed) {
+        saveTravelBuffers(next);
+      }
+
+      return next;
+    });
+  }, [detectedLocations]);
   return (
     <section className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5">
       <div className="mb-4">
@@ -373,6 +548,101 @@ export function AvailableQueFinder({ events, dateFormat }: Props) {
             </span>
           </span>
         </label>
+        {detectedLocations.length > 0 && (
+          <div className="rounded-lg border border-zinc-800 bg-zinc-950 p-3 sm:col-span-2">
+            <button
+              type="button"
+              onClick={() => setShowTravelBufferSettings((current) => !current)}
+              className="flex w-full items-center justify-between text-left"
+            >
+              <div>
+                <p className="text-sm font-medium text-zinc-100">
+                  Travel Buffer Settings
+                </p>
+                <p className="text-xs text-zinc-500">
+                  {detectedLocations.length} detected location
+                  {detectedLocations.length > 1 ? "s" : ""}. New locations
+                  default to 30 minutes.
+                </p>
+              </div>
+
+              <span className="text-xs text-zinc-400">
+                {showTravelBufferSettings ? "Hide" : "Show"}
+              </span>
+            </button>
+
+            {showTravelBufferSettings && (
+              <div className="mt-4">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <p className="text-xs text-zinc-500">
+                    Set travel buffer per location.
+                  </p>
+
+                  <label className="flex items-center gap-2 text-xs text-zinc-300">
+                    <input
+                      type="checkbox"
+                      checked={applyTravelBuffers}
+                      onChange={(e) => setApplyTravelBuffers(e.target.checked)}
+                    />
+                    Apply
+                  </label>
+                </div>
+
+                <div className="space-y-2">
+                  {detectedLocations.map((location) => (
+                    <div
+                      key={location}
+                      className="grid gap-2 rounded-md border border-zinc-800 bg-black/30 p-3 sm:grid-cols-[1fr_90px_90px]"
+                    >
+                      <div>
+                        <p className="text-sm font-medium text-zinc-100">
+                          {location}
+                        </p>
+                        <p className="text-xs text-zinc-500">
+                          Detected from event names
+                        </p>
+                      </div>
+
+                      <label className="space-y-1">
+                        <span className="text-xs text-zinc-500">From</span>
+                        <input
+                          type="number"
+                          min={0}
+                          value={travelBuffers[location]?.from ?? 30}
+                          onChange={(e) =>
+                            updateTravelBuffer(
+                              location,
+                              "from",
+                              Number(e.target.value),
+                            )
+                          }
+                          className="w-full rounded border border-zinc-800 bg-zinc-950 px-2 py-1 text-sm text-zinc-100 outline-none"
+                        />
+                      </label>
+
+                      <label className="space-y-1">
+                        <span className="text-xs text-zinc-500">To</span>
+                        <input
+                          type="number"
+                          min={0}
+                          value={travelBuffers[location]?.to ?? 30}
+                          onChange={(e) =>
+                            updateTravelBuffer(
+                              location,
+                              "to",
+                              Number(e.target.value),
+                            )
+                          }
+                          className="w-full rounded border border-zinc-800 bg-zinc-950 px-2 py-1 text-sm text-zinc-100 outline-none"
+                        />
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {error && <p className="mt-3 text-sm text-red-400">{error}</p>}
@@ -457,7 +727,7 @@ export function AvailableQueFinder({ events, dateFormat }: Props) {
 
                       return (
                         <div
-                          key={`${slot.date}-${slot.start}-${slot.end}`}
+                          key={`${slot.originalStart}-${slot.start}-${slot.end}`}
                           className="rounded-md border border-zinc-800 bg-black/40 px-3 py-2 text-sm"
                         >
                           <div className="flex items-center justify-between gap-3">
@@ -466,7 +736,7 @@ export function AvailableQueFinder({ events, dateFormat }: Props) {
                             </span>
 
                             <span className="text-zinc-500">
-                              {formatDuration(slot.durationMinutes)}
+                              {formatDuration(slot.durationMinutes ?? 0)}
                             </span>
                           </div>
 
