@@ -160,11 +160,11 @@ function buildCopyableAvailableQueText(
           lines.push(`  [travel: ${travelContext.previousLocation}]`);
         } else {
           if (travelContext.requiresTravelBefore) {
-            lines.push(`  [travel before: ${travelContext.previousLocation}]`);
+            lines.push(`  [travel from: ${travelContext.previousLocation}]`);
           }
 
           if (travelContext.requiresTravelAfter) {
-            lines.push(`  [travel after: ${travelContext.nextLocation}]`);
+            lines.push(`  [next location: ${travelContext.nextLocation}]`);
           }
         }
 
@@ -483,14 +483,14 @@ export function AvailableQueFinder({ events, dateFormat }: Props) {
                                 <>
                                   {travelContext.requiresTravelBefore && (
                                     <span className="rounded bg-zinc-800 px-2 py-0.5 text-xs text-zinc-300">
-                                      [travel before:{" "}
+                                      [travel from:{" "}
                                       {travelContext.previousLocation}]
                                     </span>
                                   )}
 
                                   {travelContext.requiresTravelAfter && (
                                     <span className="rounded bg-zinc-800 px-2 py-0.5 text-xs text-zinc-300">
-                                      [travel after:{" "}
+                                      [next location:{" "}
                                       {travelContext.nextLocation}]
                                     </span>
                                   )}
