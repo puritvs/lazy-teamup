@@ -10,6 +10,8 @@ type Props = {
   dateFormat: DateDisplayFormat;
 };
 
+const DEFAULT_LOCATION = "Default office";
+
 function getToday() {
   return new Date().toISOString().slice(0, 10);
 }
@@ -32,55 +34,166 @@ function getWeekKey(dateString: string) {
   return monday.toISOString().slice(0, 10);
 }
 
+function formatDuration(minutes: number) {
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = minutes % 60;
+
+  if (hours === 0) return `${remainingMinutes}m`;
+  if (remainingMinutes === 0) return `${hours}h`;
+
+  return `${hours}h ${remainingMinutes}m`;
+}
+
+function extractLocationFromTitle(title: string) {
+  const match = title.match(/@(.+)$/);
+  return match ? match[1].trim() : DEFAULT_LOCATION;
+}
+
+function isSameDate(dateTime: string, date: string) {
+  return dateTime.slice(0, 10) === date;
+}
+
+function getNearestPreviousEvent(
+  slotStart: string,
+  date: string,
+  events: EventForAvailability[],
+) {
+  const slotStartTime = new Date(`${date}T${slotStart}:00`).getTime();
+
+  return events
+    .filter((event) => {
+      if (!isSameDate(event.start_dt, date)) return false;
+
+      const eventEndTime = new Date(event.end_dt).getTime();
+      return eventEndTime <= slotStartTime;
+    })
+    .sort(
+      (a, b) => new Date(b.end_dt).getTime() - new Date(a.end_dt).getTime(),
+    )[0];
+}
+
+function getNearestNextEvent(
+  slotEnd: string,
+  date: string,
+  events: EventForAvailability[],
+) {
+  const slotEndTime = new Date(`${date}T${slotEnd}:00`).getTime();
+
+  return events
+    .filter((event) => {
+      if (!isSameDate(event.start_dt, date)) return false;
+
+      const eventStartTime = new Date(event.start_dt).getTime();
+      return eventStartTime >= slotEndTime;
+    })
+    .sort(
+      (a, b) => new Date(a.start_dt).getTime() - new Date(b.start_dt).getTime(),
+    )[0];
+}
+
+function getSlotTravelContext(
+  slot: {
+    start: string;
+    end: string;
+  },
+  date: string,
+  events: EventForAvailability[],
+) {
+  const previousEvent = getNearestPreviousEvent(slot.start, date, events);
+  const nextEvent = getNearestNextEvent(slot.end, date, events);
+
+  const previousLocation = previousEvent
+    ? extractLocationFromTitle(previousEvent.title)
+    : DEFAULT_LOCATION;
+
+  const nextLocation = nextEvent
+    ? extractLocationFromTitle(nextEvent.title)
+    : DEFAULT_LOCATION;
+
+  const requiresTravelBefore = previousLocation !== DEFAULT_LOCATION;
+  const requiresTravelAfter = nextLocation !== DEFAULT_LOCATION;
+
+  return {
+    previousLocation,
+    nextLocation,
+    requiresTravelBefore,
+    requiresTravelAfter,
+    requiresTravel: requiresTravelBefore || requiresTravelAfter,
+  };
+}
+
 function buildCopyableAvailableQueText(
   availableDays: {
     date: string;
     slots: {
       start: string;
       end: string;
+      durationMinutes?: number;
     }[];
   }[],
+  events: EventForAvailability[],
 ) {
   const daysWithSlots = availableDays.filter((day) => day.slots.length > 0);
 
   return daysWithSlots
     .map((day, index) => {
       const previousDay = daysWithSlots[index - 1];
+
       const shouldAddWeekSpacing =
         previousDay && getWeekKey(previousDay.date) !== getWeekKey(day.date);
 
-      const dayText = [
-        formatDate(day.date, "day-month-year"),
-        ...day.slots.map((slot) => `- ${slot.start} - ${slot.end}`),
-      ].join("\n");
+      const slotLines = day.slots.flatMap((slot) => {
+        const duration =
+          slot.durationMinutes !== undefined
+            ? ` (${formatDuration(slot.durationMinutes)})`
+            : "";
 
-      return `${shouldAddWeekSpacing ? "\n" : ""}${dayText}`;
+        const travelContext = getSlotTravelContext(slot, day.date, events);
+
+        const lines = [`- ${slot.start} - ${slot.end}${duration}`];
+
+        if (
+          travelContext.requiresTravelBefore &&
+          travelContext.requiresTravelAfter &&
+          travelContext.previousLocation === travelContext.nextLocation
+        ) {
+          lines.push(`  [travel: ${travelContext.previousLocation}]`);
+        } else {
+          if (travelContext.requiresTravelBefore) {
+            lines.push(`  [travel before: ${travelContext.previousLocation}]`);
+          }
+
+          if (travelContext.requiresTravelAfter) {
+            lines.push(`  [travel after: ${travelContext.nextLocation}]`);
+          }
+        }
+
+        return lines;
+      });
+
+      return `${shouldAddWeekSpacing ? "\n" : ""}${[
+        formatDate(day.date, "day-month-year"),
+        ...slotLines,
+      ].join("\n")}`;
     })
     .join("\n\n");
 }
-function formatDuration(minutes: number) {
-  const hours = Math.floor(minutes / 60);
-  const remainingMinutes = minutes % 60;
 
-  if (hours === 0) {
-    return `${remainingMinutes}m`;
-  }
-
-  if (remainingMinutes === 0) {
-    return `${hours}h`;
-  }
-
-  return `${hours}h ${remainingMinutes}m`;
-}
 export function AvailableQueFinder({ events, dateFormat }: Props) {
   const [startDate, setStartDate] = useState(getToday());
   const [endDate, setEndDate] = useState(getEndOfCurrentMonth());
   const [dailyStartTime, setDailyStartTime] = useState("10:00");
   const [dailyEndTime, setDailyEndTime] = useState("22:00");
-  const [minDurationMinutes, setMinDurationMinutes] = useState(30);
+
+  const [minDurationHours, setMinDurationHours] = useState(0);
+  const [minDurationMins, setMinDurationMins] = useState(30);
+
   const [submitted, setSubmitted] = useState(false);
   const [showCopyableText, setShowCopyableText] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [showOnlyTravelSlots, setShowOnlyTravelSlots] = useState(false);
+
+  const minDurationMinutes = minDurationHours * 60 + minDurationMins;
 
   const error = useMemo(() => {
     if (startDate > endDate) {
@@ -119,20 +232,42 @@ export function AvailableQueFinder({ events, dateFormat }: Props) {
     dailyEndTime,
     minDurationMinutes,
   ]);
-  const copyableText = buildCopyableAvailableQueText(availableDays);
 
-  const totalSlots = availableDays.reduce(
+  const displayedAvailableDays = useMemo(() => {
+    if (!showOnlyTravelSlots) {
+      return availableDays;
+    }
+
+    return availableDays
+      .map((day) => ({
+        ...day,
+        slots: day.slots.filter((slot) => {
+          const travelContext = getSlotTravelContext(slot, day.date, events);
+          return travelContext.requiresTravel;
+        }),
+      }))
+      .filter((day) => day.slots.length > 0);
+  }, [availableDays, showOnlyTravelSlots, events]);
+
+  const totalSlots = displayedAvailableDays.reduce(
     (sum, day) => sum + day.slots.length,
     0,
+  );
+
+  const copyableText = buildCopyableAvailableQueText(
+    displayedAvailableDays,
+    events,
   );
 
   return (
     <section className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5">
       <div className="mb-4">
         <h2 className="text-lg font-bold text-zinc-100">Find Available Que</h2>
+
         <p className="text-sm text-zinc-400">
           Find free time slots not occupied by events.
         </p>
+
         <p className="mt-1 text-xs text-zinc-500">
           Using {events.length} currently visible events. Respects current
           filters.
@@ -180,17 +315,63 @@ export function AvailableQueFinder({ events, dateFormat }: Props) {
           />
         </label>
 
-        <label className="space-y-1 sm:col-span-2">
-          <span className="text-sm text-zinc-400">
-            Minimum slot duration / minutes
-          </span>
+        <label className="space-y-2 sm:col-span-2">
+          <span className="text-sm text-zinc-400">Minimum slot duration</span>
+
+          <div className="flex items-center gap-3">
+            <div className="flex flex-col">
+              <input
+                type="number"
+                min={0}
+                value={minDurationHours}
+                onChange={(e) => setMinDurationHours(Number(e.target.value))}
+                className="w-24 rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-zinc-100 outline-none"
+              />
+              <span className="mt-1 text-xs text-zinc-500">Hours</span>
+            </div>
+
+            <span className="mt-[-16px] text-zinc-500">:</span>
+
+            <div className="flex flex-col">
+              <input
+                type="number"
+                min={0}
+                max={59}
+                value={minDurationMins}
+                onChange={(e) =>
+                  setMinDurationMins(
+                    Math.min(59, Math.max(0, Number(e.target.value))),
+                  )
+                }
+                className="w-24 rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-zinc-100 outline-none"
+              />
+              <span className="mt-1 text-xs text-zinc-500">Minutes</span>
+            </div>
+          </div>
+
+          <p className="text-xs text-zinc-500">
+            Current: {formatDuration(minDurationMinutes)}
+          </p>
+        </label>
+
+        <label className="flex items-start gap-3 rounded-lg border border-zinc-800 bg-zinc-950 p-3 sm:col-span-2">
           <input
-            type="number"
-            min={1}
-            value={minDurationMinutes}
-            onChange={(e) => setMinDurationMinutes(Number(e.target.value))}
-            className="w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-zinc-100 outline-none"
+            type="checkbox"
+            checked={showOnlyTravelSlots}
+            onChange={(e) => setShowOnlyTravelSlots(e.target.checked)}
+            className="mt-1"
           />
+
+          <span>
+            <span className="block text-sm text-zinc-100">
+              Show only slots requiring travel
+            </span>
+
+            <span className="block text-xs text-zinc-500">
+              Shows slots where the nearest previous or next event on the same
+              day has a non-default location.
+            </span>
+          </span>
         </label>
       </div>
 
@@ -210,7 +391,10 @@ export function AvailableQueFinder({ events, dateFormat }: Props) {
           <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="font-semibold text-zinc-100">Available slots</p>
-              <p className="text-xs text-zinc-500">{totalSlots} slots found</p>
+              <p className="text-xs text-zinc-500">
+                {totalSlots} slots found • Minimum{" "}
+                {formatDuration(minDurationMinutes)}
+              </p>
             </div>
 
             <div className="flex flex-wrap gap-2">
@@ -228,7 +412,6 @@ export function AvailableQueFinder({ events, dateFormat }: Props) {
                 onClick={async () => {
                   await navigator.clipboard.writeText(copyableText);
                   setCopied(true);
-
                   setTimeout(() => setCopied(false), 1500);
                 }}
                 disabled={totalSlots === 0}
@@ -242,6 +425,7 @@ export function AvailableQueFinder({ events, dateFormat }: Props) {
               </span>
             </div>
           </div>
+
           {showCopyableText && (
             <textarea
               readOnly
@@ -254,35 +438,72 @@ export function AvailableQueFinder({ events, dateFormat }: Props) {
             <p className="text-sm text-zinc-400">No available Que found.</p>
           ) : (
             <div className="h-[60vh] space-y-3 overflow-y-auto pr-2 lg:h-[520px]">
-              {availableDays
-                .filter((day) => day.slots.length > 0)
-                .map((day) => (
-                  <div
-                    key={day.date}
-                    className="rounded-lg border border-zinc-800 bg-zinc-950 p-4"
-                  >
-                    <p className="mb-3 font-semibold text-zinc-100">
-                      {formatDate(day.date, dateFormat)}{" "}
-                    </p>
+              {displayedAvailableDays.map((day) => (
+                <div
+                  key={day.date}
+                  className="rounded-lg border border-zinc-800 bg-zinc-950 p-4"
+                >
+                  <p className="mb-3 font-semibold text-zinc-100">
+                    {formatDate(day.date, dateFormat)}
+                  </p>
 
-                    <div className="space-y-2">
-                      {day.slots.map((slot) => (
+                  <div className="space-y-2">
+                    {day.slots.map((slot) => {
+                      const travelContext = getSlotTravelContext(
+                        slot,
+                        day.date,
+                        events,
+                      );
+
+                      return (
                         <div
                           key={`${slot.date}-${slot.start}-${slot.end}`}
-                          className="flex items-center justify-between rounded-md border border-zinc-800 bg-black/40 px-3 py-2 text-sm"
+                          className="rounded-md border border-zinc-800 bg-black/40 px-3 py-2 text-sm"
                         >
-                          <span className="text-zinc-100">
-                            {slot.start} - {slot.end}
-                          </span>
+                          <div className="flex items-center justify-between gap-3">
+                            <span className="text-zinc-100">
+                              {slot.start} - {slot.end}
+                            </span>
 
-                          <span className="text-zinc-500">
-                            {formatDuration(slot.durationMinutes)}
-                          </span>
+                            <span className="text-zinc-500">
+                              {formatDuration(slot.durationMinutes)}
+                            </span>
+                          </div>
+
+                          {travelContext.requiresTravel && (
+                            <div className="mt-2 flex flex-wrap gap-2">
+                              {travelContext.requiresTravelBefore &&
+                              travelContext.requiresTravelAfter &&
+                              travelContext.previousLocation ===
+                                travelContext.nextLocation ? (
+                                <span className="rounded bg-zinc-800 px-2 py-0.5 text-xs text-zinc-300">
+                                  [travel: {travelContext.previousLocation}]
+                                </span>
+                              ) : (
+                                <>
+                                  {travelContext.requiresTravelBefore && (
+                                    <span className="rounded bg-zinc-800 px-2 py-0.5 text-xs text-zinc-300">
+                                      [travel before:{" "}
+                                      {travelContext.previousLocation}]
+                                    </span>
+                                  )}
+
+                                  {travelContext.requiresTravelAfter && (
+                                    <span className="rounded bg-zinc-800 px-2 py-0.5 text-xs text-zinc-300">
+                                      [travel after:{" "}
+                                      {travelContext.nextLocation}]
+                                    </span>
+                                  )}
+                                </>
+                              )}
+                            </div>
+                          )}
                         </div>
-                      ))}
-                    </div>
+                      );
+                    })}
                   </div>
-                ))}
+                </div>
+              ))}
             </div>
           )}
         </div>
