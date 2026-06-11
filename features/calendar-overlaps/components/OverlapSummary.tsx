@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo } from "react";
-import { DateDisplayFormat } from "@/utils/date";
+import { useMemo, useState } from "react";
+import { DateDisplayFormat, formatDate } from "@/utils/date";
 import {
   findOverlappingEvents,
   OverlapGroup,
@@ -21,9 +21,14 @@ type Props = {
 };
 
 export function OverlapSummary({ events, dateFormat }: Props) {
+  const [showDetails, setShowDetails] = useState(true);
+  const [expanded, setExpanded] = useState(false);
+
   const overlapGroups: OverlapGroup[] = useMemo(() => {
     return findOverlappingEvents(events);
   }, [events]);
+
+  const displayedGroups = expanded ? overlapGroups : overlapGroups.slice(0, 5);
 
   const conflictingEventCount = useMemo(() => {
     return new Set(
@@ -78,36 +83,64 @@ export function OverlapSummary({ events, dateFormat }: Props) {
           No overlapping events found.
         </p>
       ) : (
-        <div className="h-[60vh] space-y-3 overflow-y-auto pr-2 xl:h-[520px]">
-          {overlapGroups.map((group) => (
-            <div
-              key={group.id}
-              className={[
-                "rounded-lg border p-4",
-                group.severity === "high"
-                  ? "border-red-700 bg-red-950/30"
-                  : group.severity === "medium"
-                    ? "border-amber-700 bg-amber-950/20"
-                    : "border-zinc-700 bg-zinc-950",
-              ].join(" ")}
-            >
-              <div className="mb-4 flex items-center justify-between gap-3">
-                <div>
-                  <p className="font-semibold text-zinc-100">{group.date}</p>
-                  <p className="text-xs text-zinc-500">
-                    {group.severity} severity
-                  </p>
-                </div>
+        <>
+          <button
+            type="button"
+            onClick={() => setShowDetails((current) => !current)}
+            className="mb-4 w-full rounded-lg border border-zinc-800 bg-zinc-950 px-4 py-2 text-sm text-zinc-300 transition hover:bg-zinc-900 hover:text-white"
+          >
+            {showDetails ? "Hide Details" : "Show Details"}
+          </button>
 
-                <span className="rounded-full bg-red-950 px-2 py-1 text-xs text-red-200">
-                  {group.events.length} events
-                </span>
+          {showDetails && (
+            <>
+              <div className="space-y-3">
+                {displayedGroups.map((group) => (
+                  <div
+                    key={group.id}
+                    className={[
+                      "rounded-lg border p-4",
+                      group.severity === "high"
+                        ? "border-red-700 bg-red-950/30"
+                        : group.severity === "medium"
+                          ? "border-amber-700 bg-amber-950/20"
+                          : "border-zinc-700 bg-zinc-950",
+                    ].join(" ")}
+                  >
+                    <div className="mb-4 flex items-center justify-between gap-3">
+                      <div>
+                        <p className="font-semibold text-zinc-100">
+                          {formatDate(group.date, dateFormat)}{" "}
+                        </p>
+                        <p className="text-xs text-zinc-500">
+                          {group.severity} severity
+                        </p>
+                      </div>
+
+                      <span className="rounded-full bg-red-950 px-2 py-1 text-xs text-red-200">
+                        {group.events.length} events
+                      </span>
+                    </div>
+
+                    <OverlapTimeline group={group} dateFormat={dateFormat} />
+                  </div>
+                ))}
               </div>
 
-              <OverlapTimeline group={group} dateFormat={dateFormat} />
-            </div>
-          ))}
-        </div>
+              {overlapGroups.length > 5 && (
+                <button
+                  type="button"
+                  onClick={() => setExpanded((current) => !current)}
+                  className="mt-4 w-full rounded-lg border border-zinc-800 bg-zinc-950 px-4 py-2 text-sm text-zinc-300 transition hover:bg-zinc-900 hover:text-white"
+                >
+                  {expanded
+                    ? "Show Less"
+                    : `Show ${overlapGroups.length - 5} More`}
+                </button>
+              )}
+            </>
+          )}
+        </>
       )}
     </section>
   );

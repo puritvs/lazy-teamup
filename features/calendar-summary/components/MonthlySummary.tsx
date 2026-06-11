@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { DateDisplayFormat, getMonthName } from "@/utils/date";
+import { DateDisplayFormat, formatDate, getMonthName } from "@/utils/date";
 
 type Props = {
   year: number;
@@ -51,7 +51,7 @@ export function MonthlySummary({
   const title =
     dateFormat === "month-name"
       ? `${getMonthName(month)} ${year}`
-      : `${month}/${year}`;
+      : `${String(month).padStart(2, "0")}-${year}`;
 
   return (
     <section
@@ -60,7 +60,9 @@ export function MonthlySummary({
       }
     >
       <h2 className="mb-4 text-lg font-bold">Event Summary: {title}</h2>
+
       {loading && <p className="text-sm text-zinc-400">Loading...</p>}
+
       {!loading && summary && (
         <div className="space-y-4">
           <div className="grid grid-cols-1 gap-3">
@@ -82,8 +84,8 @@ export function MonthlySummary({
 
           {summary.busiestDay && (
             <p className="text-sm text-zinc-300">
-              Busiest day: {summary.busiestDay.date} ({summary.busiestDay.count}{" "}
-              events)
+              Busiest day: {formatDate(summary.busiestDay.date, dateFormat)} (
+              {summary.busiestDay.count} events)
             </p>
           )}
         </div>

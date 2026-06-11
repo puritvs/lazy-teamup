@@ -3,9 +3,11 @@
 import { useMemo, useState } from "react";
 import { findAvailableQue } from "../services/findAvailableQue";
 import { EventForAvailability } from "../types";
+import { DateDisplayFormat, formatDate } from "@/utils/date";
 
 type Props = {
   events: EventForAvailability[];
+  dateFormat: DateDisplayFormat;
 };
 
 function getToday() {
@@ -32,7 +34,7 @@ function formatDuration(minutes: number) {
 
   return `${hours}h ${remainingMinutes}m`;
 }
-export function AvailableQueFinder({ events }: Props) {
+export function AvailableQueFinder({ events, dateFormat }: Props) {
   const [startDate, setStartDate] = useState(getToday());
   const [endDate, setEndDate] = useState(getEndOfCurrentMonth());
   const [dailyStartTime, setDailyStartTime] = useState("10:00");
@@ -183,7 +185,7 @@ export function AvailableQueFinder({ events }: Props) {
                     className="rounded-lg border border-zinc-800 bg-zinc-950 p-4"
                   >
                     <p className="mb-3 font-semibold text-zinc-100">
-                      {day.date}
+                      {formatDate(day.date, dateFormat)}{" "}
                     </p>
 
                     <div className="space-y-2">

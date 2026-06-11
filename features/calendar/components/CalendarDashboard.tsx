@@ -34,8 +34,8 @@ const months = [
 export function CalendarDashboard() {
   const [month, setMonth] = useState(6);
   const [year, setYear] = useState(2026);
-  const [dateFormat, setDateFormat] = useState<DateDisplayFormat>("month-name");
-
+  const [dateFormat, setDateFormat] =
+    useState<DateDisplayFormat>("day-month-year");
   const [events, setEvents] = useState<TeamupEvent[]>([]);
   const [excludedTitles, setExcludedTitles] = useLocalStorage<string[]>(
     "lazy-teamup-excluded-titles",
@@ -115,7 +115,7 @@ export function CalendarDashboard() {
               }
               className="w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-zinc-100 outline-none"
             >
-              <option value="month-number">01/06/2026</option>
+              <option value="day-month-year">01-06-2026</option>
               <option value="month-name">01 Jun 2026</option>
             </select>
           </label>
@@ -163,10 +163,9 @@ export function CalendarDashboard() {
           </div>
         )}
       </section>
-      <div className="grid gap-6 xl:grid-cols-[420px_1fr]">
+      <div className="grid gap-6 xl:grid-cols-[500px_1fr]">
         <OverlapSummary events={filteredEvents} dateFormat={dateFormat} />
-
-        <AvailableQueFinder events={filteredEvents} />
+        <AvailableQueFinder events={filteredEvents} dateFormat={dateFormat} />
       </div>
       <section className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5 sm:p-6">
         <button

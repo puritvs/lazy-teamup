@@ -1,8 +1,22 @@
-export type DateDisplayFormat = "month-number" | "month-name";
-export function getMonthName(month: number) {
-  return new Date(2000, month - 1).toLocaleString("en-US", {
-    month: "long",
-  });
+export type DateDisplayFormat = "day-month-year" | "month-name";
+
+export function getMonthName(month: number): string {
+  const months = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+  ];
+
+  return months[month - 1] ?? "";
 }
 
 export function getMonthRange(year: number, month: number) {
@@ -15,23 +29,34 @@ export function getMonthRange(year: number, month: number) {
   };
 }
 
+export function formatDate(
+  dateInput: string | Date,
+  format: DateDisplayFormat = "day-month-year",
+): string {
+  const date = typeof dateInput === "string" ? new Date(dateInput) : dateInput;
+
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const year = date.getFullYear();
+
+  if (format === "month-name") {
+    const monthName = date.toLocaleString("en-US", {
+      month: "short",
+    });
+
+    return `${day} ${monthName} ${year}`;
+  }
+
+  return `${day}-${month}-${year}`;
+}
+
 export function formatEventDateRange(
-  startDateTime: string,
-  endDateTime: string,
-  format: DateDisplayFormat = "month-number",
-) {
-  const start = new Date(startDateTime);
-  const end = new Date(endDateTime);
-
-  const day = String(start.getDate()).padStart(2, "0");
-  const monthNumber = String(start.getMonth() + 1).padStart(2, "0");
-  const year = start.getFullYear();
-  const monthName = start.toLocaleString("en-US", { month: "short" });
-
-  const date =
-    format === "month-name"
-      ? `${day} ${monthName} ${year}`
-      : `${day}/${monthNumber}/${year}`;
+  startDt: string,
+  endDt: string,
+  format: DateDisplayFormat = "day-month-year",
+): string {
+  const start = new Date(startDt);
+  const end = new Date(endDt);
 
   const startTime = `${String(start.getHours()).padStart(2, "0")}:${String(
     start.getMinutes(),
@@ -41,5 +66,5 @@ export function formatEventDateRange(
     end.getMinutes(),
   ).padStart(2, "0")}`;
 
-  return `${date} • ${startTime} - ${endTime}`;
+  return `${formatDate(start, format)} ${startTime} - ${endTime}`;
 }
