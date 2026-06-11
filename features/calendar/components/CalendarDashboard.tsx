@@ -1,10 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { EventListButton } from "@/features/calendar/components/EventListButton";
+import { EventFilterPanel } from "@/features/calendar/components/EventFilterPanel";
+import { EventList } from "@/features/calendar/components/EventList";
 import { MonthlySummary } from "@/features/calendar-summary/components/MonthlySummary";
 import { OverlapSummary } from "@/features/calendar-overlaps/components/OverlapSummary";
+import { AvailableQueFinder } from "@/features/available-que/components/AvailableQueFinder";
 import { DateDisplayFormat } from "@/utils/date";
+import { useLocalStorage } from "@/hooks/useLocalStorage";
 
 type TeamupEvent = {
   id: string;
@@ -34,9 +37,15 @@ export function CalendarDashboard() {
   const [dateFormat, setDateFormat] = useState<DateDisplayFormat>("month-name");
 
   const [events, setEvents] = useState<TeamupEvent[]>([]);
-  const [excludedTitles, setExcludedTitles] = useState<string[]>([]);
+  const [excludedTitles, setExcludedTitles] = useLocalStorage<string[]>(
+    "lazy-teamup-excluded-titles",
+    [],
+  );
   const [loadingEvents, setLoadingEvents] = useState(false);
+
   const [showEventSummary, setShowEventSummary] = useState(false);
+  const [showEventList, setShowEventList] = useState(false);
+
   async function loadEvents() {
     setLoadingEvents(true);
 
@@ -46,8 +55,8 @@ export function CalendarDashboard() {
       );
 
       const data = await res.json();
+
       setEvents(data.events ?? data);
-      setExcludedTitles([]);
     } finally {
       setLoadingEvents(false);
     }
@@ -62,9 +71,9 @@ export function CalendarDashboard() {
   }, [events, excludedTitles]);
 
   return (
-    <div className="space-y-8">
-      <section className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-6">
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="space-y-6 sm:space-y-8">
+      <section className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5 sm:p-6">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <label className="space-y-2">
             <span className="text-sm text-zinc-400">Month</span>
             <select
@@ -79,6 +88,7 @@ export function CalendarDashboard() {
               ))}
             </select>
           </label>
+
           <label className="space-y-2">
             <span className="text-sm text-zinc-400">Year</span>
             <select
@@ -95,6 +105,7 @@ export function CalendarDashboard() {
               )}
             </select>
           </label>
+
           <label className="space-y-2">
             <span className="text-sm text-zinc-400">Date format</span>
             <select
@@ -108,51 +119,79 @@ export function CalendarDashboard() {
               <option value="month-name">01 Jun 2026</option>
             </select>
           </label>
+
+          <button
+            type="button"
+            onClick={loadEvents}
+            disabled={loadingEvents}
+            className="self-end rounded-lg bg-white px-4 py-2 text-sm font-medium text-black disabled:opacity-50"
+          >
+            {loadingEvents ? "Loading..." : "Refresh"}
+          </button>
         </div>
       </section>
 
-      <div className="grid items-start gap-6 lg:grid-cols-[320px_1fr] lg:gap-8">
-        <aside className="space-y-6 self-start lg:sticky lg:top-8 lg:h-fit">
-          <section className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5">
-            <button
-              type="button"
-              onClick={() => setShowEventSummary((current) => !current)}
-              className="flex w-full items-center justify-between"
-            >
-              <span className="text-lg font-bold text-zinc-100">
-                Event Summary
-              </span>
+      <EventFilterPanel
+        events={events}
+        filteredEvents={filteredEvents}
+        excludedTitles={excludedTitles}
+        setExcludedTitles={setExcludedTitles}
+      />
+      <section className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5 sm:p-6">
+        <button
+          type="button"
+          onClick={() => setShowEventSummary((current) => !current)}
+          className="flex w-full items-center justify-between"
+        >
+          <div className="text-left">
+            <h2 className="text-lg font-bold text-zinc-100">Event Summary</h2>
+            <p className="text-sm text-zinc-400">Optional monthly overview.</p>
+          </div>
 
-              <span className="text-sm text-zinc-400">
-                {showEventSummary ? "Hide" : "Show"}
-              </span>
-            </button>
+          <span className="text-sm text-zinc-400">
+            {showEventSummary ? "Hide" : "Show"}
+          </span>
+        </button>
+        {showEventSummary && (
+          <div className="mt-4">
+            <MonthlySummary
+              year={year}
+              month={month}
+              dateFormat={dateFormat}
+              embedded
+            />
+          </div>
+        )}
+      </section>
+      <div className="grid gap-6 xl:grid-cols-[420px_1fr]">
+        <OverlapSummary events={filteredEvents} dateFormat={dateFormat} />
 
-            {showEventSummary && (
-              <div className="mt-4">
-                <MonthlySummary
-                  year={year}
-                  month={month}
-                  dateFormat={dateFormat}
-                  embedded
-                />
-              </div>
-            )}
-          </section>
-          <OverlapSummary events={filteredEvents} dateFormat={dateFormat} />
-        </aside>
-        <section className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-6">
-          <EventListButton
-            events={events}
-            filteredEvents={filteredEvents}
-            excludedTitles={excludedTitles}
-            setExcludedTitles={setExcludedTitles}
-            loading={loadingEvents}
-            onRefresh={loadEvents}
-            dateFormat={dateFormat}
-          />
-        </section>
+        <AvailableQueFinder events={filteredEvents} />
       </div>
+      <section className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5 sm:p-6">
+        <button
+          type="button"
+          onClick={() => setShowEventList((current) => !current)}
+          className="flex w-full items-center justify-between"
+        >
+          <div className="text-left">
+            <h2 className="text-lg font-bold text-zinc-100">Raw Event Data</h2>
+            <p className="text-sm text-zinc-400">
+              {filteredEvents.length} visible / {events.length} total events
+            </p>
+          </div>
+
+          <span className="text-sm text-zinc-400">
+            {showEventList ? "Hide" : "Show"}
+          </span>
+        </button>
+
+        {showEventList && (
+          <div className="mt-5">
+            <EventList events={filteredEvents} dateFormat={dateFormat} />
+          </div>
+        )}
+      </section>
     </div>
   );
 }
