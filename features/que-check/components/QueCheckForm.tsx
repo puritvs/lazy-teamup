@@ -1,11 +1,18 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { DateDisplayFormat, formatDate } from "@/utils/date";
 import { OverlapConflictCard } from "@/features/calendar-overlaps/components/OverlapConflictCard";
 import { parseQueMessage } from "../services/parseQueMessage";
 import { validateQueOverlap } from "../services/validateQueOverlap";
 import { QueCheckEvent } from "../types";
+type ManualEvent = {
+  sameDay: boolean;
+  startDate: string;
+  startTime: string;
+  endDate: string;
+  endTime: string;
+};
 
 type Props = {
   events: QueCheckEvent[];
@@ -53,10 +60,62 @@ End: DD-MM-YYYY HH:mm
 Input:
 `;
 
+function buildQueCheckText(
+  title: string,
+  location: string,
+  events: ManualEvent[],
+) {
+  const lines: string[] = [];
+
+  lines.push(`Title: ${title}`);
+
+  if (location.trim()) {
+    lines.push(`Location: ${location}`);
+  }
+
+  lines.push("");
+
+  events.forEach((event) => {
+    const endDate = event.sameDay ? event.startDate : event.endDate;
+
+    if (!event.startDate || !event.startTime || !endDate || !event.endTime) {
+      return;
+    }
+
+    lines.push(
+      `Start: ${formatDateInputToQueDate(event.startDate)} ${event.startTime}`,
+    );
+    lines.push(`End: ${formatDateInputToQueDate(endDate)} ${event.endTime}`);
+    lines.push("");
+  });
+
+  return lines.join("\n").trim();
+}
+
+function formatDateInputToQueDate(date: string) {
+  if (!date) return "";
+
+  const [year, month, day] = date.split("-");
+  return `${day}-${month}-${year}`;
+}
 export function QueCheckForm({ events, dateFormat }: Props) {
   const [message, setMessage] = useState(sampleMessage);
   const [submitted, setSubmitted] = useState(false);
   const [promptCopied, setPromptCopied] = useState(false);
+  const [inputMode, setInputMode] = useState<"text" | "manual">("text");
+
+  const [manualTitle, setManualTitle] = useState("");
+  const [manualLocation, setManualLocation] = useState("");
+
+  const [manualEvents, setManualEvents] = useState<ManualEvent[]>([
+    {
+      sameDay: true,
+      startDate: "",
+      startTime: "",
+      endDate: "",
+      endTime: "",
+    },
+  ]);
   const result = useMemo(() => {
     if (!submitted) return null;
 
@@ -79,7 +138,46 @@ export function QueCheckForm({ events, dateFormat }: Props) {
       };
     }
   }, [submitted, message, events]);
+  function addManualEvent() {
+    setManualEvents((current) => [
+      ...current,
+      {
+        sameDay: true,
+        startDate: "",
+        startTime: "",
+        endDate: "",
+        endTime: "",
+      },
+    ]);
+  }
 
+  function removeManualEvent(index: number) {
+    setManualEvents((current) => current.filter((_, i) => i !== index));
+  }
+
+  function updateManualEvent(
+    index: number,
+    key: keyof ManualEvent,
+    value: string,
+  ) {
+    setManualEvents((current) =>
+      current.map((event, i) =>
+        i === index
+          ? {
+              ...event,
+              [key]: value,
+            }
+          : event,
+      ),
+    );
+  }
+  useEffect(() => {
+    if (inputMode !== "manual") {
+      return;
+    }
+
+    setMessage(buildQueCheckText(manualTitle, manualLocation, manualEvents));
+  }, [inputMode, manualTitle, manualLocation, manualEvents]);
   const validCount =
     result?.checkedEvents.filter((item) => !item.conflictGroup).length ?? 0;
 
@@ -93,6 +191,33 @@ export function QueCheckForm({ events, dateFormat }: Props) {
         <p className="text-sm text-zinc-400">
           Paste normalized queue text to check for overlapping events.
         </p>
+      </div>
+      <div className="mb-4 flex gap-2">
+        <button
+          type="button"
+          onClick={() => setInputMode("text")}
+          className={[
+            "rounded-lg px-4 py-2 text-sm",
+            inputMode === "text"
+              ? "bg-white text-black"
+              : "bg-zinc-900 text-zinc-300",
+          ].join(" ")}
+        >
+          Paste Message
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setInputMode("manual")}
+          className={[
+            "rounded-lg px-4 py-2 text-sm",
+            inputMode === "manual"
+              ? "bg-white text-black"
+              : "bg-zinc-900 text-zinc-300",
+          ].join(" ")}
+        >
+          Manual Entry
+        </button>
       </div>
       <details className="mb-4 rounded-lg border border-zinc-800 bg-zinc-950">
         <summary className="cursor-pointer p-3 text-sm font-medium text-zinc-100">
@@ -125,6 +250,146 @@ export function QueCheckForm({ events, dateFormat }: Props) {
           </button>
         </div>
       </details>
+      {inputMode === "manual" && (
+        <div className="mb-4 rounded-lg border border-zinc-800 bg-zinc-950 p-4">
+          <h3 className="mb-4 font-semibold text-zinc-100">Manual Entry</h3>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="space-y-1">
+              <span className="text-sm text-zinc-400">Title</span>
+              <input
+                value={manualTitle}
+                onChange={(e) => setManualTitle(e.target.value)}
+                className="w-full rounded-lg border border-zinc-800 bg-black px-3 py-2 text-zinc-100"
+              />
+            </label>
+
+            <label className="space-y-1">
+              <span className="text-sm text-zinc-400">Location</span>
+              <input
+                value={manualLocation}
+                onChange={(e) => setManualLocation(e.target.value)}
+                className="w-full rounded-lg border border-zinc-800 bg-black px-3 py-2 text-zinc-100"
+              />
+            </label>
+          </div>
+
+          <div className="mt-4 space-y-3">
+            {manualEvents.map((event, index) => (
+              <div
+                key={index}
+                className="rounded-lg border border-zinc-800 p-3"
+              >
+                <div className="mb-3 flex items-center justify-between">
+                  <span className="font-medium text-zinc-200">
+                    Event #{index + 1}
+                  </span>
+
+                  <div className="flex items-center gap-4">
+                    <label className="flex items-center gap-2 text-sm text-zinc-300">
+                      <input
+                        type="checkbox"
+                        checked={event.sameDay}
+                        onChange={(e) => {
+                          const checked = e.target.checked;
+
+                          setManualEvents((current) =>
+                            current.map((item, i) =>
+                              i === index
+                                ? {
+                                    ...item,
+                                    sameDay: checked,
+                                    endDate: checked
+                                      ? item.startDate
+                                      : item.endDate,
+                                  }
+                                : item,
+                            ),
+                          );
+                        }}
+                      />
+                      Same day
+                    </label>
+
+                    {manualEvents.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeManualEvent(index)}
+                        className="text-sm text-red-300"
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid gap-3 md:grid-cols-2">
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <input
+                      type="date"
+                      value={event.startDate}
+                      onChange={(e) => {
+                        const value = e.target.value;
+
+                        setManualEvents((current) =>
+                          current.map((item, i) =>
+                            i === index
+                              ? {
+                                  ...item,
+                                  startDate: value,
+                                  endDate: item.sameDay ? value : item.endDate,
+                                }
+                              : item,
+                          ),
+                        );
+                      }}
+                      className="rounded border border-zinc-800 bg-black px-3 py-2"
+                    />
+
+                    <input
+                      type="time"
+                      value={event.startTime}
+                      onChange={(e) =>
+                        updateManualEvent(index, "startTime", e.target.value)
+                      }
+                      className="rounded border border-zinc-800 bg-black px-3 py-2"
+                    />
+                  </div>
+
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <input
+                      type="date"
+                      value={event.sameDay ? event.startDate : event.endDate}
+                      disabled={event.sameDay}
+                      onChange={(e) =>
+                        updateManualEvent(index, "endDate", e.target.value)
+                      }
+                      className="rounded border border-zinc-800 bg-black px-3 py-2 disabled:opacity-50"
+                    />
+
+                    <input
+                      type="time"
+                      value={event.endTime}
+                      onChange={(e) =>
+                        updateManualEvent(index, "endTime", e.target.value)
+                      }
+                      className="rounded border border-zinc-800 bg-black px-3 py-2"
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <button
+            type="button"
+            onClick={addManualEvent}
+            className="mt-4 rounded-lg border border-zinc-700 px-4 py-2 text-sm text-zinc-200"
+          >
+            + Add Event
+          </button>
+        </div>
+      )}
       <textarea
         value={message}
         onChange={(e) => {
