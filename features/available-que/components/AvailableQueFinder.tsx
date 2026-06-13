@@ -2,9 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { findAvailableQue } from "../services/findAvailableQue";
-import { EventForAvailability } from "../types";
+import { EventForAvailability, TravelBuffer } from "../types";
 import { DateDisplayFormat, formatDate } from "@/utils/date";
-
+import { TimeSelect } from "@/components/TimeSelect";
 type Props = {
   events: EventForAvailability[];
   dateFormat: DateDisplayFormat;
@@ -12,11 +12,6 @@ type Props = {
 
 const DEFAULT_LOCATION = "Default office";
 const TRAVEL_BUFFER_STORAGE_KEY = "lazy-teamup-travel-buffers";
-
-type TravelBuffer = {
-  from: number;
-  to: number;
-};
 
 type TravelBufferMap = Record<string, TravelBuffer>;
 function loadTravelBuffers(): TravelBufferMap {
@@ -124,14 +119,19 @@ function getAdjustedSlot(
   };
 }
 function getToday() {
-  return new Date().toISOString().slice(0, 10);
+  return toDateInputValue(new Date());
+}
+function toDateInputValue(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
 }
 
 function getEndOfCurrentMonth() {
   const now = new Date();
-  return new Date(now.getFullYear(), now.getMonth() + 1, 0)
-    .toISOString()
-    .slice(0, 10);
+  return toDateInputValue(new Date(now.getFullYear(), now.getMonth() + 1, 0));
 }
 
 function getWeekKey(dateString: string) {
@@ -309,8 +309,7 @@ export function AvailableQueFinder({ events, dateFormat }: Props) {
   const [travelBuffers, setTravelBuffers] = useState<TravelBufferMap>(() =>
     loadTravelBuffers(),
   );
-  const [showTravelBufferSettings, setShowTravelBufferSettings] =
-    useState(false);
+
   const detectedLocations = useMemo(() => {
     return getUniqueNonDefaultLocations(events);
   }, [events]);
@@ -472,22 +471,12 @@ export function AvailableQueFinder({ events, dateFormat }: Props) {
 
         <label className="space-y-1">
           <span className="text-sm text-zinc-400">Daily start</span>
-          <input
-            type="time"
-            value={dailyStartTime}
-            onChange={(e) => setDailyStartTime(e.target.value)}
-            className="w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-zinc-100 outline-none"
-          />
+          <TimeSelect value={dailyStartTime} onChange={setDailyStartTime} />
         </label>
 
         <label className="space-y-1">
           <span className="text-sm text-zinc-400">Daily end</span>
-          <input
-            type="time"
-            value={dailyEndTime}
-            onChange={(e) => setDailyEndTime(e.target.value)}
-            className="w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-zinc-100 outline-none"
-          />
+          <TimeSelect value={dailyEndTime} onChange={setDailyEndTime} />
         </label>
 
         <label className="space-y-2 sm:col-span-2">
@@ -548,101 +537,6 @@ export function AvailableQueFinder({ events, dateFormat }: Props) {
             </span>
           </span>
         </label>
-        {detectedLocations.length > 0 && (
-          <div className="rounded-lg border border-zinc-800 bg-zinc-950 p-3 sm:col-span-2">
-            <button
-              type="button"
-              onClick={() => setShowTravelBufferSettings((current) => !current)}
-              className="flex w-full items-center justify-between text-left"
-            >
-              <div>
-                <p className="text-sm font-medium text-zinc-100">
-                  Travel Buffer Settings
-                </p>
-                <p className="text-xs text-zinc-500">
-                  {detectedLocations.length} detected location
-                  {detectedLocations.length > 1 ? "s" : ""}. New locations
-                  default to 30 minutes.
-                </p>
-              </div>
-
-              <span className="text-xs text-zinc-400">
-                {showTravelBufferSettings ? "Hide" : "Show"}
-              </span>
-            </button>
-
-            {showTravelBufferSettings && (
-              <div className="mt-4">
-                <div className="mb-3 flex items-center justify-between gap-3">
-                  <p className="text-xs text-zinc-500">
-                    Set travel buffer per location.
-                  </p>
-
-                  <label className="flex items-center gap-2 text-xs text-zinc-300">
-                    <input
-                      type="checkbox"
-                      checked={applyTravelBuffers}
-                      onChange={(e) => setApplyTravelBuffers(e.target.checked)}
-                    />
-                    Apply
-                  </label>
-                </div>
-
-                <div className="space-y-2">
-                  {detectedLocations.map((location) => (
-                    <div
-                      key={location}
-                      className="grid gap-2 rounded-md border border-zinc-800 bg-black/30 p-3 sm:grid-cols-[1fr_90px_90px]"
-                    >
-                      <div>
-                        <p className="text-sm font-medium text-zinc-100">
-                          {location}
-                        </p>
-                        <p className="text-xs text-zinc-500">
-                          Detected from event names
-                        </p>
-                      </div>
-
-                      <label className="space-y-1">
-                        <span className="text-xs text-zinc-500">From</span>
-                        <input
-                          type="number"
-                          min={0}
-                          value={travelBuffers[location]?.from ?? 30}
-                          onChange={(e) =>
-                            updateTravelBuffer(
-                              location,
-                              "from",
-                              Number(e.target.value),
-                            )
-                          }
-                          className="w-full rounded border border-zinc-800 bg-zinc-950 px-2 py-1 text-sm text-zinc-100 outline-none"
-                        />
-                      </label>
-
-                      <label className="space-y-1">
-                        <span className="text-xs text-zinc-500">To</span>
-                        <input
-                          type="number"
-                          min={0}
-                          value={travelBuffers[location]?.to ?? 30}
-                          onChange={(e) =>
-                            updateTravelBuffer(
-                              location,
-                              "to",
-                              Number(e.target.value),
-                            )
-                          }
-                          className="w-full rounded border border-zinc-800 bg-zinc-950 px-2 py-1 text-sm text-zinc-100 outline-none"
-                        />
-                      </label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
       </div>
 
       {error && <p className="mt-3 text-sm text-red-400">{error}</p>}

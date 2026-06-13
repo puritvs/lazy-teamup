@@ -21,14 +21,13 @@ export function getMonthName(month: number): string {
 
 export function getMonthRange(year: number, month: number) {
   const start = new Date(year, month - 1, 1);
-  const end = new Date(year, month, 1);
+  const end = new Date(year, month, 0);
 
   return {
     startDate: start.toISOString().slice(0, 10),
     endDate: end.toISOString().slice(0, 10),
   };
 }
-
 export function formatDate(
   dateInput: string | Date,
   format: DateDisplayFormat = "day-month-year",

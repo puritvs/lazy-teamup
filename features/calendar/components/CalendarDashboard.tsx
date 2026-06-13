@@ -1,14 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { EventFilterPanel } from "@/features/calendar/components/EventFilterPanel";
 import { EventList } from "@/features/calendar/components/EventList";
 import { MonthlySummary } from "@/features/calendar-summary/components/MonthlySummary";
 import { OverlapSummary } from "@/features/calendar-overlaps/components/OverlapSummary";
 import { AvailableQueFinder } from "@/features/available-que/components/AvailableQueFinder";
 import { DateDisplayFormat } from "@/utils/date";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
-
+import { AppNav } from "@/components/AppNav";
 type TeamupEvent = {
   id: string;
   title: string;
@@ -85,6 +84,12 @@ export function CalendarDashboard() {
   }, []);
   return (
     <div className="space-y-6 sm:space-y-8">
+      <AppNav
+        events={events}
+        filteredEvents={filteredEvents}
+        excludedTitles={excludedTitles}
+        setExcludedTitles={setExcludedTitles}
+      />
       <section className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5 sm:p-6">
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <label className="space-y-2">
@@ -144,12 +149,6 @@ export function CalendarDashboard() {
         </div>
       </section>
 
-      <EventFilterPanel
-        events={events}
-        filteredEvents={filteredEvents}
-        excludedTitles={excludedTitles}
-        setExcludedTitles={setExcludedTitles}
-      />
       <section className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5 sm:p-6">
         <button
           type="button"

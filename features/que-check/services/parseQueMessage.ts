@@ -17,23 +17,31 @@ function parseDateTimeToISO(dateTime: string) {
 }
 
 export function parseQueMessage(message: string): ParsedQueEvent[] {
-  const titleMatch = message.match(/^Title:\s*(.+)$/im);
-  const locationMatch = message.match(/^Location:\s*(.+)$/im);
+  const blocks = message
+    .split(/\n\s*\n/)
+    .map((block) => block.trim())
+    .filter(Boolean);
 
-  if (!titleMatch) {
-    throw new Error("Missing Title.");
-  }
+  const globalTitle = message.match(/^Title:\s*(.+)$/im)?.[1]?.trim();
+  const globalLocation = message.match(/^Location:\s*(.+)$/im)?.[1]?.trim();
 
-  const title = titleMatch[1].trim();
-  const location = locationMatch?.[1]?.trim();
+  const eventBlocks = blocks.filter(
+    (block) => /^Start:/im.test(block) && /^End:/im.test(block),
+  );
 
-  const eventBlocks = message.match(/Start:\s*.+\nEnd:\s*.+/g);
-
-  if (!eventBlocks || eventBlocks.length === 0) {
+  if (eventBlocks.length === 0) {
     throw new Error("Missing Start/End event blocks.");
   }
 
   return eventBlocks.map((block, index) => {
+    const title = block.match(/^Title:\s*(.+)$/im)?.[1]?.trim() ?? globalTitle;
+    const location =
+      block.match(/^Location:\s*(.+)$/im)?.[1]?.trim() ?? globalLocation;
+
+    if (!title) {
+      throw new Error(`Event block ${index + 1}: Missing Title.`);
+    }
+
     const startMatch = block.match(/^Start:\s*(.+)$/im);
     const endMatch = block.match(/^End:\s*(.+)$/im);
 
@@ -44,10 +52,9 @@ export function parseQueMessage(message: string): ParsedQueEvent[] {
     const start = parseDateTimeToISO(startMatch[1].trim());
     const end = parseDateTimeToISO(endMatch[1].trim());
 
-    const startMs = new Date(start.dateTime).getTime();
-    const endMs = new Date(end.dateTime).getTime();
-
-    if (endMs <= startMs) {
+    if (
+      new Date(end.dateTime).getTime() <= new Date(start.dateTime).getTime()
+    ) {
       throw new Error(`Event block ${index + 1}: End must be after Start.`);
     }
 

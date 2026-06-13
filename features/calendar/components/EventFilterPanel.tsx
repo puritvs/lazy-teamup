@@ -35,13 +35,12 @@ export function EventFilterPanel({
   }, [eventTitles, search]);
 
   function toggleExcludedTitle(title: string) {
-    setExcludedTitles((current) =>
-      current.includes(title)
-        ? current.filter((item) => item !== title)
-        : [...current, title],
-    );
-  }
+    const next = excludedTitles.includes(title)
+      ? excludedTitles.filter((item) => item !== title)
+      : [...excludedTitles, title];
 
+    setExcludedTitles(next);
+  }
   return (
     <section className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5 sm:p-6">
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -51,8 +50,8 @@ export function EventFilterPanel({
             {filteredEvents.length} visible / {events.length} total events
           </p>
           <p className="text-xs text-zinc-500">
-            Filters affect Overlapping Events, Available Que, and Raw Event
-            Data.
+            Filters affect Overlapping Events, Available Que, Que Check, and Raw
+            Event Data.
           </p>
         </div>
 
@@ -115,20 +114,27 @@ export function EventFilterPanel({
           const checked = excludedTitles.includes(title);
 
           return (
-            <label
+            <button
               key={title}
+              type="button"
+              onClick={() => toggleExcludedTitle(title)}
               className={[
-                "flex cursor-pointer items-center gap-2 rounded-lg border border-zinc-800 p-3 text-sm transition",
+                "flex w-full cursor-pointer items-center gap-2 rounded-lg border border-zinc-800 p-3 text-left text-sm transition",
                 checked
                   ? "bg-zinc-800 opacity-60"
                   : "bg-zinc-950 hover:bg-zinc-900",
               ].join(" ")}
             >
-              <input
-                type="checkbox"
-                checked={checked}
-                onChange={() => toggleExcludedTitle(title)}
-              />
+              <span
+                className={[
+                  "flex h-4 w-4 shrink-0 items-center justify-center rounded border",
+                  checked
+                    ? "border-red-500 bg-red-950 text-red-200"
+                    : "border-zinc-600 bg-black",
+                ].join(" ")}
+              >
+                {checked ? "×" : ""}
+              </span>
 
               <span className="flex flex-1 items-center justify-between gap-2">
                 <span className="font-medium text-zinc-100">{title}</span>
@@ -137,7 +143,7 @@ export function EventFilterPanel({
                   {count}
                 </span>
               </span>
-            </label>
+            </button>
           );
         })}
       </div>

@@ -16,3 +16,7 @@ export type AvailableQueDay = {
   date: string;
   slots: AvailableQueSlot[];
 };
+export type TravelBuffer = {
+  from: number;
+  to: number;
+};

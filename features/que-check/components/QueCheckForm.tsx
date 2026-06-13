@@ -6,6 +6,112 @@ import { OverlapConflictCard } from "@/features/calendar-overlaps/components/Ove
 import { parseQueMessage } from "../services/parseQueMessage";
 import { validateQueOverlap } from "../services/validateQueOverlap";
 import { QueCheckEvent } from "../types";
+import { TimeSelect } from "@/components/TimeSelect";
+type TravelBuffer = {
+  from: number;
+  to: number;
+};
+
+type TravelBufferMap = Record<string, TravelBuffer>;
+
+const DEFAULT_LOCATION = "Default office";
+const TRAVEL_BUFFER_STORAGE_KEY = "lazy-teamup-travel-buffers";
+
+function loadTravelBuffers(): TravelBufferMap {
+  if (typeof window === "undefined") return {};
+
+  try {
+    return JSON.parse(
+      localStorage.getItem(TRAVEL_BUFFER_STORAGE_KEY) ?? "{}",
+    ) as TravelBufferMap;
+  } catch {
+    return {};
+  }
+}
+
+function extractLocationFromTitle(title: string) {
+  const match = title.match(/@(.+)$/);
+  return match ? match[1].trim() : DEFAULT_LOCATION;
+}
+
+function getTravelWarnings(
+  parsed: {
+    date: string;
+    endDate: string;
+    startTime: string;
+    endTime: string;
+  },
+  events: QueCheckEvent[],
+  travelBuffers: TravelBufferMap,
+) {
+  const start = new Date(`${parsed.date}T${parsed.startTime}:00`);
+  const end = new Date(`${parsed.endDate}T${parsed.endTime}:00`);
+
+  const sameDayEvents = events.filter(
+    (event) => event.start_dt.slice(0, 10) === parsed.date,
+  );
+
+  const previousEvent = [...sameDayEvents]
+    .filter((event) => new Date(event.end_dt).getTime() <= start.getTime())
+    .sort(
+      (a, b) => new Date(b.end_dt).getTime() - new Date(a.end_dt).getTime(),
+    )[0];
+
+  const nextEvent = sameDayEvents
+    .filter((event) => new Date(event.start_dt).getTime() >= end.getTime())
+    .sort(
+      (a, b) => new Date(a.start_dt).getTime() - new Date(b.start_dt).getTime(),
+    )[0];
+
+  const warnings: {
+    type: "from" | "to";
+    location: string;
+    requiredMinutes: number;
+    actualMinutes: number;
+  }[] = [];
+
+  if (previousEvent) {
+    const location = extractLocationFromTitle(previousEvent.title);
+
+    if (location !== DEFAULT_LOCATION) {
+      const requiredMinutes = travelBuffers[location]?.from ?? 30;
+      const actualMinutes = Math.floor(
+        (start.getTime() - new Date(previousEvent.end_dt).getTime()) / 60000,
+      );
+
+      if (actualMinutes < requiredMinutes) {
+        warnings.push({
+          type: "from",
+          location,
+          requiredMinutes,
+          actualMinutes: Math.max(0, actualMinutes),
+        });
+      }
+    }
+  }
+
+  if (nextEvent) {
+    const location = extractLocationFromTitle(nextEvent.title);
+
+    if (location !== DEFAULT_LOCATION) {
+      const requiredMinutes = travelBuffers[location]?.to ?? 30;
+      const actualMinutes = Math.floor(
+        (new Date(nextEvent.start_dt).getTime() - end.getTime()) / 60000,
+      );
+
+      if (actualMinutes < requiredMinutes) {
+        warnings.push({
+          type: "to",
+          location,
+          requiredMinutes,
+          actualMinutes: Math.max(0, actualMinutes),
+        });
+      }
+    }
+  }
+
+  return warnings;
+}
 type ManualEvent = {
   sameDay: boolean;
   startDate: string;
@@ -106,7 +212,7 @@ export function QueCheckForm({ events, dateFormat }: Props) {
 
   const [manualTitle, setManualTitle] = useState("");
   const [manualLocation, setManualLocation] = useState("");
-
+  const [travelBuffers] = useState<TravelBufferMap>(() => loadTravelBuffers());
   const [manualEvents, setManualEvents] = useState<ManualEvent[]>([
     {
       sameDay: true,
@@ -124,8 +230,8 @@ export function QueCheckForm({ events, dateFormat }: Props) {
       const checkedEvents = parsedEvents.map((parsed) => ({
         parsed,
         conflictGroup: validateQueOverlap(parsed, events),
+        travelWarnings: getTravelWarnings(parsed, events, travelBuffers),
       }));
-
       return {
         checkedEvents,
         error: null,
@@ -346,13 +452,11 @@ export function QueCheckForm({ events, dateFormat }: Props) {
                       className="rounded border border-zinc-800 bg-black px-3 py-2"
                     />
 
-                    <input
-                      type="time"
-                      value={event.startTime}
-                      onChange={(e) =>
-                        updateManualEvent(index, "startTime", e.target.value)
+                    <TimeSelect
+                      value={event.startTime || "00:00"}
+                      onChange={(value) =>
+                        updateManualEvent(index, "startTime", value)
                       }
-                      className="rounded border border-zinc-800 bg-black px-3 py-2"
                     />
                   </div>
 
@@ -367,13 +471,11 @@ export function QueCheckForm({ events, dateFormat }: Props) {
                       className="rounded border border-zinc-800 bg-black px-3 py-2 disabled:opacity-50"
                     />
 
-                    <input
-                      type="time"
-                      value={event.endTime}
-                      onChange={(e) =>
-                        updateManualEvent(index, "endTime", e.target.value)
+                    <TimeSelect
+                      value={event.endTime || "00:00"}
+                      onChange={(value) =>
+                        updateManualEvent(index, "endTime", value)
                       }
-                      className="rounded border border-zinc-800 bg-black px-3 py-2"
                     />
                   </div>
                 </div>
@@ -401,12 +503,14 @@ export function QueCheckForm({ events, dateFormat }: Props) {
 
       <div className="mt-3 rounded-lg border border-zinc-800 bg-zinc-950 p-3 text-xs text-zinc-400">
         <p className="mb-1 font-semibold text-zinc-200">Expected format</p>
-        <pre className="whitespace-pre-wrap">{`Title: Event Name
-Location: Optional Location
+        <pre className="whitespace-pre-wrap">{`Title: Default Event Name
+Location: Optional Default Location
 
 Start: DD-MM-YYYY HH:mm
 End: DD-MM-YYYY HH:mm
 
+Title: Different Event Name
+Location: Different Location
 Start: DD-MM-YYYY HH:mm
 End: DD-MM-YYYY HH:mm`}</pre>
       </div>
@@ -448,51 +552,72 @@ End: DD-MM-YYYY HH:mm`}</pre>
             </div>
           </div>
 
-          {result.checkedEvents.map(({ parsed, conflictGroup }) => (
-            <div
-              key={parsed.id}
-              className="rounded-xl border border-zinc-800 bg-zinc-950 p-4"
-            >
-              <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <p className="font-semibold text-zinc-100">{parsed.title}</p>
-                  <p className="text-sm text-zinc-400">
-                    {formatDate(parsed.date, dateFormat)} {parsed.startTime} -{" "}
-                    {parsed.crossesMidnight
-                      ? `${formatDate(parsed.endDate, dateFormat)} ${parsed.endTime}`
-                      : parsed.endTime}
-                  </p>
-                  {parsed.crossesMidnight && (
-                    <p className="mt-1 text-xs text-amber-300">
-                      Crosses midnight
+          {result.checkedEvents.map(
+            ({ parsed, conflictGroup, travelWarnings }) => (
+              <div
+                key={parsed.id}
+                className="rounded-xl border border-zinc-800 bg-zinc-950 p-4"
+              >
+                <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="font-semibold text-zinc-100">
+                      {parsed.title}
                     </p>
-                  )}
+                    <p className="text-sm text-zinc-400">
+                      {formatDate(parsed.date, dateFormat)} {parsed.startTime} -{" "}
+                      {parsed.crossesMidnight
+                        ? `${formatDate(parsed.endDate, dateFormat)} ${parsed.endTime}`
+                        : parsed.endTime}
+                    </p>
+                    {parsed.crossesMidnight && (
+                      <p className="mt-1 text-xs text-amber-300">
+                        Crosses midnight
+                      </p>
+                    )}
+                  </div>
+
+                  <span
+                    className={[
+                      "w-fit rounded-full px-3 py-1 text-xs",
+                      conflictGroup
+                        ? "bg-red-950 text-red-200"
+                        : "bg-emerald-950 text-emerald-200",
+                    ].join(" ")}
+                  >
+                    {conflictGroup ? "Conflict" : "Available"}
+                  </span>
                 </div>
 
-                <span
-                  className={[
-                    "w-fit rounded-full px-3 py-1 text-xs",
-                    conflictGroup
-                      ? "bg-red-950 text-red-200"
-                      : "bg-emerald-950 text-emerald-200",
-                  ].join(" ")}
-                >
-                  {conflictGroup ? "Conflict" : "Available"}
-                </span>
-              </div>
+                {conflictGroup ? (
+                  <OverlapConflictCard
+                    group={conflictGroup}
+                    dateFormat={dateFormat}
+                  />
+                ) : (
+                  <p className="rounded-lg border border-emerald-900 bg-emerald-950/20 p-3 text-sm text-emerald-300">
+                    No overlapping events found.
+                  </p>
+                )}
+                {travelWarnings.length > 0 && (
+                  <div className="mt-3 rounded-lg border border-amber-900 bg-amber-950/30 p-3 text-sm text-amber-200">
+                    <p className="mb-2 font-semibold">Travel warning</p>
 
-              {conflictGroup ? (
-                <OverlapConflictCard
-                  group={conflictGroup}
-                  dateFormat={dateFormat}
-                />
-              ) : (
-                <p className="rounded-lg border border-emerald-900 bg-emerald-950/20 p-3 text-sm text-emerald-300">
-                  No overlapping events found.
-                </p>
-              )}
-            </div>
-          ))}
+                    <div className="space-y-1">
+                      {travelWarnings.map((warning, index) => (
+                        <p key={index}>
+                          {warning.type === "from"
+                            ? `[travel from: ${warning.location}]`
+                            : `[next location: ${warning.location}]`}{" "}
+                          Need {warning.requiredMinutes} min, only{" "}
+                          {warning.actualMinutes} min available.
+                        </p>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ),
+          )}
         </div>
       )}
     </section>
