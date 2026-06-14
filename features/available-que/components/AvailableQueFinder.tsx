@@ -36,7 +36,12 @@ function getWeekKey(dateString: string) {
 
   return monday.toISOString().slice(0, 10);
 }
-
+function toTimeString(hours: number, minutes: number) {
+  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(
+    2,
+    "0",
+  )}`;
+}
 function formatDuration(minutes: number) {
   const hours = Math.floor(minutes / 60);
   const remainingMinutes = minutes % 60;
@@ -180,9 +185,14 @@ function buildCopyableAvailableQueText(
 export function AvailableQueFinder({ events, dateFormat }: Props) {
   const [startDate, setStartDate] = useState(getToday());
   const [endDate, setEndDate] = useState(getEndOfCurrentMonth());
-  const [dailyStartTime, setDailyStartTime] = useState("10:00");
-  const [dailyEndTime, setDailyEndTime] = useState("22:00");
+  const [dailyStartHour, setDailyStartHour] = useState(10);
+  const [dailyStartMinute, setDailyStartMinute] = useState(0);
 
+  const [dailyEndHour, setDailyEndHour] = useState(22);
+  const [dailyEndMinute, setDailyEndMinute] = useState(0);
+
+  const dailyStartTime = toTimeString(dailyStartHour, dailyStartMinute);
+  const dailyEndTime = toTimeString(dailyEndHour, dailyEndMinute);
   const [minDurationHours, setMinDurationHours] = useState(0);
   const [minDurationMins, setMinDurationMins] = useState(30);
 
@@ -297,24 +307,88 @@ export function AvailableQueFinder({ events, dateFormat }: Props) {
           />
         </label>
 
-        <label className="space-y-1">
+        <label className="space-y-2">
           <span className="text-sm text-zinc-400">Daily start</span>
-          <input
-            type="time"
-            value={dailyStartTime}
-            onChange={(e) => setDailyStartTime(e.target.value)}
-            className="w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-zinc-100 outline-none"
-          />
+
+          <div className="flex items-center gap-3">
+            <div className="flex flex-col">
+              <input
+                type="number"
+                min={0}
+                max={23}
+                value={dailyStartHour}
+                onChange={(e) =>
+                  setDailyStartHour(
+                    Math.min(23, Math.max(0, Number(e.target.value))),
+                  )
+                }
+                className="w-24 rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-zinc-100 outline-none"
+              />
+              <span className="mt-1 text-xs text-zinc-500">Hour</span>
+            </div>
+
+            <span className="mt-[-16px] text-zinc-500">:</span>
+
+            <div className="flex flex-col">
+              <input
+                type="number"
+                min={0}
+                max={59}
+                value={dailyStartMinute}
+                onChange={(e) =>
+                  setDailyStartMinute(
+                    Math.min(59, Math.max(0, Number(e.target.value))),
+                  )
+                }
+                className="w-24 rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-zinc-100 outline-none"
+              />
+              <span className="mt-1 text-xs text-zinc-500">Minute</span>
+            </div>
+          </div>
+
+          <p className="text-xs text-zinc-500">Current: {dailyStartTime}</p>
         </label>
 
-        <label className="space-y-1">
+        <label className="space-y-2">
           <span className="text-sm text-zinc-400">Daily end</span>
-          <input
-            type="time"
-            value={dailyEndTime}
-            onChange={(e) => setDailyEndTime(e.target.value)}
-            className="w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-zinc-100 outline-none"
-          />
+
+          <div className="flex items-center gap-3">
+            <div className="flex flex-col">
+              <input
+                type="number"
+                min={0}
+                max={23}
+                value={dailyEndHour}
+                onChange={(e) =>
+                  setDailyEndHour(
+                    Math.min(23, Math.max(0, Number(e.target.value))),
+                  )
+                }
+                className="w-24 rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-zinc-100 outline-none"
+              />
+              <span className="mt-1 text-xs text-zinc-500">Hour</span>
+            </div>
+
+            <span className="mt-[-16px] text-zinc-500">:</span>
+
+            <div className="flex flex-col">
+              <input
+                type="number"
+                min={0}
+                max={59}
+                value={dailyEndMinute}
+                onChange={(e) =>
+                  setDailyEndMinute(
+                    Math.min(59, Math.max(0, Number(e.target.value))),
+                  )
+                }
+                className="w-24 rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-zinc-100 outline-none"
+              />
+              <span className="mt-1 text-xs text-zinc-500">Minute</span>
+            </div>
+          </div>
+
+          <p className="text-xs text-zinc-500">Current: {dailyEndTime}</p>
         </label>
 
         <label className="space-y-2 sm:col-span-2">
