@@ -480,7 +480,7 @@ export function AvailableQueFinder({ events, dateFormat }: Props) {
                             </span>
 
                             <span className="text-zinc-500">
-                              {formatDuration(slot.durationMinutes ?? 0)}
+                              {formatDuration(slot.durationMinutes)}
                             </span>
                           </div>
 

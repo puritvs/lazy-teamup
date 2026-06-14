@@ -9,7 +9,7 @@ export type AvailableQueSlot = {
   date: string;
   start: string;
   end: string;
-  durationMinutes?: number;
+  durationMinutes: number;
 };
 
 export type AvailableQueDay = {

@@ -1,4 +1,3 @@
-// app/layout.tsx
 import "./globals.css";
 import { AppNav } from "@/components/AppNav";
 import { GlobalSettingsProvider } from "@/features/settings/GlobalSettingsProvider";
