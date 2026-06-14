@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { QueCheckForm } from "./QueCheckForm";
-import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { DateDisplayFormat } from "@/utils/date";
-import { AppNav } from "@/components/AppNav";
+import { useGlobalSettings } from "@/features/settings/GlobalSettingsProvider";
 type TeamupEvent = {
   id: string;
   title: string;
@@ -31,14 +30,16 @@ export function QueCheckDashboard() {
   const [month, setMonth] = useState(6);
   const [year, setYear] = useState(2026);
   const [dateFormat] = useState<DateDisplayFormat>("day-month-year");
+  const { setEvents, filteredEvents } = useGlobalSettings();
 
-  const [events, setEvents] = useState<TeamupEvent[]>([]);
+  const [rawEvents, setRawEvents] = useState<TeamupEvent[]>([]);
+  //   const [events, setEvents] = useState<TeamupEvent[]>([]);
   const [loadingEvents, setLoadingEvents] = useState(false);
 
-  const [excludedTitles, setExcludedTitles] = useLocalStorage<string[]>(
-    "lazy-teamup-excluded-titles",
-    [],
-  );
+  //   const [excludedTitles, setExcludedTitles] = useLocalStorage<string[]>(
+  //     "lazy-teamup-excluded-titles",
+  //     [],
+  //   );
 
   async function loadEvents() {
     setLoadingEvents(true);
@@ -49,7 +50,9 @@ export function QueCheckDashboard() {
       );
 
       const data = await res.json();
-      setEvents(data.events ?? data);
+      const nextEvents = data.events ?? data;
+      setRawEvents(nextEvents);
+      setEvents(nextEvents);
     } finally {
       setLoadingEvents(false);
     }
@@ -59,18 +62,12 @@ export function QueCheckDashboard() {
     loadEvents();
   }, [year, month]);
 
-  const filteredEvents = useMemo(() => {
-    return events.filter((event) => !excludedTitles.includes(event.title));
-  }, [events, excludedTitles]);
+  //   const filteredEvents = useMemo(() => {
+  //     return events.filter((event) => !excludedTitles.includes(event.title));
+  //   }, [events, excludedTitles]);
 
   return (
     <div className="space-y-6">
-      <AppNav
-        events={events}
-        filteredEvents={filteredEvents}
-        excludedTitles={excludedTitles}
-        setExcludedTitles={setExcludedTitles}
-      />
       <section className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5 sm:p-6">
         <div className="mb-4">
           <h2 className="text-lg font-bold text-zinc-100">
@@ -126,7 +123,7 @@ export function QueCheckDashboard() {
         </div>
 
         <p className="mt-4 text-xs text-zinc-500">
-          {filteredEvents.length} visible / {events.length} total events
+          {filteredEvents.length} visible / {rawEvents.length} total events
         </p>
       </section>
 

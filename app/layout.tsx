@@ -1,13 +1,19 @@
-import './globals.css';
+// app/layout.tsx
+import "./globals.css";
+import { AppNav } from "@/components/AppNav";
+import { GlobalSettingsProvider } from "@/features/settings/GlobalSettingsProvider";
 
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <GlobalSettingsProvider>
+          <AppNav />
+          {children}
+        </GlobalSettingsProvider>
+      </body>
     </html>
   );
 }

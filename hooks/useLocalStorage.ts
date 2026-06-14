@@ -1,5 +1,10 @@
-import { Dispatch, SetStateAction, useEffect, useState } from "react";
-
+import {
+  Dispatch,
+  SetStateAction,
+  useCallback,
+  useEffect,
+  useState,
+} from "react";
 const LOCAL_STORAGE_CHANGE_EVENT = "lazy-teamup-local-storage-change";
 
 export function useLocalStorage<T>(key: string, defaultValue: T) {
@@ -22,18 +27,23 @@ export function useLocalStorage<T>(key: string, defaultValue: T) {
     };
   }, [key]);
 
-  const setStoredValue: Dispatch<SetStateAction<T>> = (nextValue) => {
-    setValue((current) => {
-      const resolvedValue =
-        typeof nextValue === "function"
-          ? (nextValue as (current: T) => T)(current)
-          : nextValue;
-      localStorage.setItem(key, JSON.stringify(resolvedValue));
-      window.dispatchEvent(new Event(LOCAL_STORAGE_CHANGE_EVENT));
+  const setStoredValue: Dispatch<SetStateAction<T>> = useCallback(
+    (nextValue) => {
+      setValue((current) => {
+        const resolvedValue =
+          typeof nextValue === "function"
+            ? (nextValue as (current: T) => T)(current)
+            : nextValue;
 
-      return resolvedValue;
-    });
-  };
+        if (typeof window !== "undefined") {
+          window.localStorage.setItem(key, JSON.stringify(resolvedValue));
+        }
+
+        return resolvedValue;
+      });
+    },
+    [key],
+  );
 
   return [value, setStoredValue] as const;
 }

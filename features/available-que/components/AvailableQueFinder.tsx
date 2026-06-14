@@ -2,136 +2,28 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { findAvailableQue } from "../services/findAvailableQue";
-import { EventForAvailability, TravelBuffer } from "../types";
+import { EventForAvailability } from "../types";
 import { DateDisplayFormat, formatDate } from "@/utils/date";
-import { TimeSelect } from "@/components/TimeSelect";
+import { useGlobalSettings } from "@/features/settings/GlobalSettingsProvider";
+import {
+  DEFAULT_LOCATION,
+  extractLocationFromTitle,
+  getUniqueNonDefaultLocations,
+} from "@/features/travel-buffer/utils";
 type Props = {
   events: EventForAvailability[];
   dateFormat: DateDisplayFormat;
 };
 
-const DEFAULT_LOCATION = "Default office";
-const TRAVEL_BUFFER_STORAGE_KEY = "lazy-teamup-travel-buffers";
-
-type TravelBufferMap = Record<string, TravelBuffer>;
-function loadTravelBuffers(): TravelBufferMap {
-  if (typeof window === "undefined") return {};
-
-  const saved = localStorage.getItem(TRAVEL_BUFFER_STORAGE_KEY);
-
-  if (!saved) return {};
-
-  try {
-    return JSON.parse(saved) as TravelBufferMap;
-  } catch {
-    return {};
-  }
-}
-
-function saveTravelBuffers(buffers: TravelBufferMap) {
-  localStorage.setItem(TRAVEL_BUFFER_STORAGE_KEY, JSON.stringify(buffers));
-}
-function getUniqueNonDefaultLocations(events: EventForAvailability[]) {
-  return Array.from(
-    new Set(
-      events
-        .map((event) => extractLocationFromTitle(event.title))
-        .filter((location) => location !== DEFAULT_LOCATION),
-    ),
-  ).sort();
-}
-function addMinutesToTime(time: string, minutes: number) {
-  const [hour, minute] = time.split(":").map(Number);
-  const date = new Date(2000, 0, 1, hour, minute);
-  date.setMinutes(date.getMinutes() + minutes);
-
-  return `${String(date.getHours()).padStart(2, "0")}:${String(
-    date.getMinutes(),
-  ).padStart(2, "0")}`;
-}
-
-function subtractMinutesFromTime(time: string, minutes: number) {
-  const [hour, minute] = time.split(":").map(Number);
-  const date = new Date(2000, 0, 1, hour, minute);
-  date.setMinutes(date.getMinutes() - minutes);
-
-  return `${String(date.getHours()).padStart(2, "0")}:${String(
-    date.getMinutes(),
-  ).padStart(2, "0")}`;
-}
-
-function getDurationMinutes(start: string, end: string) {
-  const [startHour, startMinute] = start.split(":").map(Number);
-  const [endHour, endMinute] = end.split(":").map(Number);
-
-  return endHour * 60 + endMinute - (startHour * 60 + startMinute);
-}
-
-function getAdjustedSlot(
-  slot: {
-    start: string;
-    end: string;
-    durationMinutes?: number;
-  },
-  date: string,
-  events: EventForAvailability[],
-  travelBuffers: TravelBufferMap,
-  applyTravelBuffers: boolean,
-) {
-  const travelContext = getSlotTravelContext(slot, date, events);
-
-  if (!applyTravelBuffers || !travelContext.requiresTravel) {
-    return {
-      ...slot,
-      originalStart: slot.start,
-      originalEnd: slot.end,
-      travelContext,
-      adjusted: false,
-    };
-  }
-
-  const fromBuffer = travelContext.requiresTravelBefore
-    ? (travelBuffers[travelContext.previousLocation]?.from ?? 30)
-    : 0;
-
-  const toBuffer = travelContext.requiresTravelAfter
-    ? (travelBuffers[travelContext.nextLocation]?.to ?? 30)
-    : 0;
-
-  const adjustedStart = addMinutesToTime(slot.start, fromBuffer);
-  const adjustedEnd = subtractMinutesFromTime(slot.end, toBuffer);
-  const adjustedDurationMinutes = getDurationMinutes(
-    adjustedStart,
-    adjustedEnd,
-  );
-
-  return {
-    ...slot,
-    start: adjustedStart,
-    end: adjustedEnd,
-    durationMinutes: adjustedDurationMinutes,
-    originalStart: slot.start,
-    originalEnd: slot.end,
-    travelContext,
-    fromBuffer,
-    toBuffer,
-    adjusted: fromBuffer > 0 || toBuffer > 0,
-  };
-}
 function getToday() {
-  return toDateInputValue(new Date());
-}
-function toDateInputValue(date: Date) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-
-  return `${year}-${month}-${day}`;
+  return new Date().toISOString().slice(0, 10);
 }
 
 function getEndOfCurrentMonth() {
   const now = new Date();
-  return toDateInputValue(new Date(now.getFullYear(), now.getMonth() + 1, 0));
+  return new Date(now.getFullYear(), now.getMonth() + 1, 0)
+    .toISOString()
+    .slice(0, 10);
 }
 
 function getWeekKey(dateString: string) {
@@ -153,11 +45,6 @@ function formatDuration(minutes: number) {
   if (remainingMinutes === 0) return `${hours}h`;
 
   return `${hours}h ${remainingMinutes}m`;
-}
-
-function extractLocationFromTitle(title: string) {
-  const match = title.match(/@(.+)$/);
-  return match ? match[1].trim() : DEFAULT_LOCATION;
 }
 
 function isSameDate(dateTime: string, date: string) {
@@ -303,16 +190,11 @@ export function AvailableQueFinder({ events, dateFormat }: Props) {
   const [showCopyableText, setShowCopyableText] = useState(false);
   const [copied, setCopied] = useState(false);
   const [showOnlyTravelSlots, setShowOnlyTravelSlots] = useState(false);
-
-  const minDurationMinutes = minDurationHours * 60 + minDurationMins;
-  const [applyTravelBuffers, setApplyTravelBuffers] = useState(true);
-  const [travelBuffers, setTravelBuffers] = useState<TravelBufferMap>(() =>
-    loadTravelBuffers(),
-  );
-
   const detectedLocations = useMemo(() => {
     return getUniqueNonDefaultLocations(events);
   }, [events]);
+  const minDurationMinutes = minDurationHours * 60 + minDurationMins;
+  const { setTravelBuffers } = useGlobalSettings();
   const error = useMemo(() => {
     if (startDate > endDate) {
       return "Start date cannot be after end date.";
@@ -352,36 +234,20 @@ export function AvailableQueFinder({ events, dateFormat }: Props) {
   ]);
 
   const displayedAvailableDays = useMemo(() => {
+    if (!showOnlyTravelSlots) {
+      return availableDays;
+    }
+
     return availableDays
       .map((day) => ({
         ...day,
-        slots: day.slots
-          .map((slot) =>
-            getAdjustedSlot(
-              slot,
-              day.date,
-              events,
-              travelBuffers,
-              applyTravelBuffers,
-            ),
-          )
-          .filter((slot) => {
-            if (showOnlyTravelSlots && !slot.travelContext.requiresTravel) {
-              return false;
-            }
-
-            return (slot.durationMinutes ?? 0) >= minDurationMinutes;
-          }),
+        slots: day.slots.filter((slot) => {
+          const travelContext = getSlotTravelContext(slot, day.date, events);
+          return travelContext.requiresTravel;
+        }),
       }))
       .filter((day) => day.slots.length > 0);
-  }, [
-    availableDays,
-    events,
-    travelBuffers,
-    applyTravelBuffers,
-    showOnlyTravelSlots,
-    minDurationMinutes,
-  ]);
+  }, [availableDays, showOnlyTravelSlots, events]);
 
   const totalSlots = displayedAvailableDays.reduce(
     (sum, day) => sum + day.slots.length,
@@ -392,47 +258,21 @@ export function AvailableQueFinder({ events, dateFormat }: Props) {
     displayedAvailableDays,
     events,
   );
-  function updateTravelBuffer(
-    location: string,
-    key: keyof TravelBuffer,
-    value: number,
-  ) {
-    setTravelBuffers((current) => {
-      const next = {
-        ...current,
-        [location]: {
-          from: current[location]?.from ?? 30,
-          to: current[location]?.to ?? 30,
-          [key]: Math.max(0, value),
-        },
-      };
-
-      saveTravelBuffers(next);
-      return next;
-    });
-  }
   useEffect(() => {
     setTravelBuffers((current) => {
-      const next = { ...current };
       let changed = false;
+      const next = { ...current };
 
       for (const location of detectedLocations) {
         if (!next[location]) {
-          next[location] = {
-            from: 30,
-            to: 30,
-          };
+          next[location] = { from: 30, to: 30 };
           changed = true;
         }
       }
 
-      if (changed) {
-        saveTravelBuffers(next);
-      }
-
-      return next;
+      return changed ? next : current;
     });
-  }, [detectedLocations]);
+  }, [detectedLocations, setTravelBuffers]);
   return (
     <section className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5">
       <div className="mb-4">
@@ -471,12 +311,22 @@ export function AvailableQueFinder({ events, dateFormat }: Props) {
 
         <label className="space-y-1">
           <span className="text-sm text-zinc-400">Daily start</span>
-          <TimeSelect value={dailyStartTime} onChange={setDailyStartTime} />
+          <input
+            type="time"
+            value={dailyStartTime}
+            onChange={(e) => setDailyStartTime(e.target.value)}
+            className="w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-zinc-100 outline-none"
+          />
         </label>
 
         <label className="space-y-1">
           <span className="text-sm text-zinc-400">Daily end</span>
-          <TimeSelect value={dailyEndTime} onChange={setDailyEndTime} />
+          <input
+            type="time"
+            value={dailyEndTime}
+            onChange={(e) => setDailyEndTime(e.target.value)}
+            className="w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-zinc-100 outline-none"
+          />
         </label>
 
         <label className="space-y-2 sm:col-span-2">
@@ -621,7 +471,7 @@ export function AvailableQueFinder({ events, dateFormat }: Props) {
 
                       return (
                         <div
-                          key={`${slot.originalStart}-${slot.start}-${slot.end}`}
+                          key={`${slot.date}-${slot.start}-${slot.end}`}
                           className="rounded-md border border-zinc-800 bg-black/40 px-3 py-2 text-sm"
                         >
                           <div className="flex items-center justify-between gap-3">

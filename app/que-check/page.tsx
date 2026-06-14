@@ -1,4 +1,3 @@
-import { AppNav } from "@/components/AppNav";
 import { QueCheckDashboard } from "@/features/que-check/components/QueCheckDashboard";
 
 export default function QueCheckPage() {

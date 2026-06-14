@@ -1,13 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { EventList } from "@/features/calendar/components/EventList";
 import { MonthlySummary } from "@/features/calendar-summary/components/MonthlySummary";
 import { OverlapSummary } from "@/features/calendar-overlaps/components/OverlapSummary";
 import { AvailableQueFinder } from "@/features/available-que/components/AvailableQueFinder";
 import { DateDisplayFormat } from "@/utils/date";
-import { useLocalStorage } from "@/hooks/useLocalStorage";
-import { AppNav } from "@/components/AppNav";
+import { useGlobalSettings } from "@/features/settings/GlobalSettingsProvider";
 type TeamupEvent = {
   id: string;
   title: string;
@@ -35,11 +34,10 @@ export function CalendarDashboard() {
   const [year, setYear] = useState(2026);
   const [dateFormat, setDateFormat] =
     useState<DateDisplayFormat>("day-month-year");
-  const [events, setEvents] = useState<TeamupEvent[]>([]);
-  const [excludedTitles, setExcludedTitles] = useLocalStorage<string[]>(
-    "lazy-teamup-excluded-titles",
-    [],
-  );
+  const { setEvents, filteredEvents } = useGlobalSettings();
+
+  const [rawEvents, setRawEvents] = useState<TeamupEvent[]>([]);
+
   const [loadingEvents, setLoadingEvents] = useState(false);
 
   const [showEventSummary, setShowEventSummary] = useState(false);
@@ -54,8 +52,9 @@ export function CalendarDashboard() {
       );
 
       const data = await res.json();
-
-      setEvents(data.events ?? data);
+      const nextEvents = data.events ?? data;
+      setRawEvents(nextEvents);
+      setEvents(nextEvents);
     } finally {
       setLoadingEvents(false);
     }
@@ -65,9 +64,6 @@ export function CalendarDashboard() {
     loadEvents();
   }, [year, month]);
 
-  const filteredEvents = useMemo(() => {
-    return events.filter((event) => !excludedTitles.includes(event.title));
-  }, [events, excludedTitles]);
   useEffect(() => {
     async function loadCalendarName() {
       try {
@@ -84,12 +80,6 @@ export function CalendarDashboard() {
   }, []);
   return (
     <div className="space-y-6 sm:space-y-8">
-      <AppNav
-        events={events}
-        filteredEvents={filteredEvents}
-        excludedTitles={excludedTitles}
-        setExcludedTitles={setExcludedTitles}
-      />
       <section className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5 sm:p-6">
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <label className="space-y-2">
@@ -134,7 +124,7 @@ export function CalendarDashboard() {
               className="w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-zinc-100 outline-none"
             >
               <option value="day-month-year">01-06-2026</option>
-              <option value="month-name">01 Jun 2026</option>
+              <option value="month-name">01 Jun 2026</option>r.leng
             </select>
           </label>
 
@@ -193,7 +183,7 @@ export function CalendarDashboard() {
           <div className="text-left">
             <h2 className="text-lg font-bold text-zinc-100">Raw Event Data</h2>
             <p className="text-sm text-zinc-400">
-              {filteredEvents.length} visible / {events.length} total events
+              {filteredEvents.length} visible / {rawEvents.length} total events
             </p>
           </div>
 

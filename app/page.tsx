@@ -1,5 +1,4 @@
 import { CalendarDashboard } from "@/features/calendar/components/CalendarDashboard";
-import { AppNav } from "@/components/AppNav";
 export default function Home() {
   return (
     <main className="min-h-screen bg-black px-3 py-4 text-zinc-100 sm:px-6 sm:py-8">
