@@ -166,6 +166,95 @@ End: DD-MM-YYYY HH:mm
 Input:
 `;
 
+const PERSONAL_QUE_CHECK_AI_PROMPT = `Extract my personal Que Check schedule from this table/image.
+
+My name/alias: Pu
+
+Context:
+
+* CHOREO. means the choreographer responsible for that row.
+* QUE is the event title.
+* PLACE is the location.
+* REMARK contains additional notes and should not be used to determine ownership unless explicitly stated.
+* I only want events that I am responsible for or events that require all choreographers to attend.
+
+Inclusive Sections:
+The following section names are considered mandatory for all choreographers and must always be included, even if CHOREO. is blank:
+
+* BLOCKING & RUN THROUGH
+* SHOW DAY
+* FULL RUN
+* RUNTHROUGH
+* STAGE BLOCKING
+
+Inclusion Rules:
+Include a row if:
+
+1. CHOREO. contains "Pu".
+2. The row belongs to one of the Inclusive Sections listed above.
+3. The row is clearly part of an Inclusive Section even if the CHOREO. column is empty.
+
+Exclusion Rules:
+Exclude a row if:
+
+1. CHOREO. does not contain "Pu".
+2. The row is assigned only to other choreographers.
+3. "Pu" appears only inside REMARK.
+4. The row is not part of an Inclusive Section and is not assigned to Pu.
+
+Title Rules:
+
+* Use the QUE column as the event title.
+* Do not use CHOREO. as the title.
+* If QUE is blank under an Inclusive Section, use the section name as the Title.
+
+Location Rules:
+
+* Use the PLACE column as the Location.
+* If PLACE is blank, omit the Location field entirely.
+* Do not guess locations.
+
+Time Rules:
+
+* Convert dates to DD-MM-YYYY.
+* Use 24-hour HH:mm format.
+* If an event crosses midnight, End must use the following date.
+* Any row belonging to the following Inclusive Sections:
+
+  * BLOCKING & RUN THROUGH
+  * SHOW DAY
+  * FULL RUN
+  * RUNTHROUGH
+  * STAGE BLOCKING
+
+  must always be treated as a full-day event regardless of any displayed time.
+
+  Output:
+  Start: DD-MM-YYYY 00:00
+  End: next day DD-MM-YYYY 00:00
+
+Output Format:
+For every included event, output exactly:
+
+Title: [QUE or inclusive section name]
+Location: [PLACE]
+
+Start: DD-MM-YYYY HH:mm
+End: DD-MM-YYYY HH:mm
+
+Requirements:
+
+* Keep Thai text exactly as written.
+* Output only confirmed events.
+* Do not provide explanations.
+* Do not provide reasoning.
+* Do not provide summaries.
+* Do not provide a "Needs Confirmation" section.
+* Do not use markdown code blocks.
+* Do not add any extra text before or after the extracted schedule.
+
+Input:
+`;
 function buildQueCheckText(
   title: string,
   location: string,
@@ -208,6 +297,9 @@ export function QueCheckForm({ events, dateFormat }: Props) {
   const [message, setMessage] = useState(sampleMessage);
   const [submitted, setSubmitted] = useState(false);
   const [promptCopied, setPromptCopied] = useState(false);
+  const [personalPromptCopied, setPersonalPromptCopied] = useState(false);
+  const [showGeneralPrompt, setShowGeneralPrompt] = useState(false);
+  const [showPersonalPrompt, setShowPersonalPrompt] = useState(false);
   const [inputMode, setInputMode] = useState<"text" | "manual">("text");
 
   const [manualTitle, setManualTitle] = useState("");
@@ -325,35 +417,95 @@ export function QueCheckForm({ events, dateFormat }: Props) {
           Manual Entry
         </button>
       </div>
-      <details className="mb-4 rounded-lg border border-zinc-800 bg-zinc-950">
-        <summary className="cursor-pointer p-3 text-sm font-medium text-zinc-100">
+      <details className="mb-4 rounded-lg border border-zinc-800 bg-zinc-950 p-4">
+        <summary className="cursor-pointer font-semibold text-zinc-100">
           Generate Que Check Format with AI
         </summary>
 
-        <div className="border-t border-zinc-800 p-3">
-          <p className="mb-3 text-xs text-zinc-500">
-            Copy this prompt into any AI chat, paste the staff message after
-            <span className="text-zinc-300"> Input:</span>, then paste the AI
-            output back into Que Check.
+        <p className="mt-2 text-sm text-zinc-400">
+          Copy one of these prompts into any AI chat, paste the staff message
+          after Input:, then paste the AI output back into Que Check.
+        </p>
+
+        <div className="mt-4 rounded-lg border border-zinc-800 bg-black/40 p-3">
+          <p className="font-medium text-zinc-100">General Que Format Prompt</p>
+
+          <p className="mt-1 text-xs text-zinc-500">
+            Use this for normal schedule text conversion.
           </p>
 
-          <textarea
-            readOnly
-            value={QUE_CHECK_AI_PROMPT}
-            className="h-72 w-full resize-none rounded-lg border border-zinc-800 bg-black p-3 font-mono text-xs text-zinc-100 outline-none"
-          />
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={async () => {
+                await navigator.clipboard.writeText(QUE_CHECK_AI_PROMPT);
+                setPromptCopied(true);
+                setTimeout(() => setPromptCopied(false), 1500);
+              }}
+              className="rounded-lg bg-white px-4 py-2 text-sm font-medium text-black"
+            >
+              {promptCopied ? "Copied" : "Copy General Prompt"}
+            </button>
 
-          <button
-            type="button"
-            onClick={async () => {
-              await navigator.clipboard.writeText(QUE_CHECK_AI_PROMPT);
-              setPromptCopied(true);
-              setTimeout(() => setPromptCopied(false), 1500);
-            }}
-            className="mt-3 rounded-lg bg-white px-4 py-2 text-sm font-medium text-black"
-          >
-            {promptCopied ? "Copied" : "Copy AI Prompt"}
-          </button>
+            <button
+              type="button"
+              onClick={() => setShowGeneralPrompt((current) => !current)}
+              className="rounded-lg border border-zinc-700 px-4 py-2 text-sm text-zinc-200 hover:bg-zinc-900"
+            >
+              {showGeneralPrompt ? "Hide Preview" : "Preview"}
+            </button>
+          </div>
+
+          {showGeneralPrompt && (
+            <textarea
+              readOnly
+              value={QUE_CHECK_AI_PROMPT}
+              className="mt-3 h-64 w-full resize-none rounded-lg border border-zinc-800 bg-zinc-950 p-3 font-mono text-xs text-zinc-100 outline-none"
+            />
+          )}
+        </div>
+
+        <div className="mt-4 rounded-lg border border-zinc-800 bg-black/40 p-3">
+          <p className="font-medium text-zinc-100">
+            Personal Que Extraction Prompt
+          </p>
+
+          <p className="mt-1 text-xs text-zinc-500">
+            Use this for table/image schedules where you only want rows assigned
+            to Pu or inclusive rehearsals.
+          </p>
+
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={async () => {
+                await navigator.clipboard.writeText(
+                  PERSONAL_QUE_CHECK_AI_PROMPT,
+                );
+                setPersonalPromptCopied(true);
+                setTimeout(() => setPersonalPromptCopied(false), 1500);
+              }}
+              className="rounded-lg bg-white px-4 py-2 text-sm font-medium text-black"
+            >
+              {personalPromptCopied ? "Copied" : "Copy Personal Prompt"}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setShowPersonalPrompt((current) => !current)}
+              className="rounded-lg border border-zinc-700 px-4 py-2 text-sm text-zinc-200 hover:bg-zinc-900"
+            >
+              {showPersonalPrompt ? "Hide Preview" : "Preview"}
+            </button>
+          </div>
+
+          {showPersonalPrompt && (
+            <textarea
+              readOnly
+              value={PERSONAL_QUE_CHECK_AI_PROMPT}
+              className="mt-3 h-72 w-full resize-none rounded-lg border border-zinc-800 bg-zinc-950 p-3 font-mono text-xs text-zinc-100 outline-none"
+            />
+          )}
         </div>
       </details>
       {inputMode === "manual" && (
