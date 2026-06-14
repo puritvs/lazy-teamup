@@ -7,32 +7,13 @@ import { parseQueMessage } from "../services/parseQueMessage";
 import { validateQueOverlap } from "../services/validateQueOverlap";
 import { QueCheckEvent } from "../types";
 import { TimeSelect } from "@/components/TimeSelect";
-type TravelBuffer = {
-  from: number;
-  to: number;
-};
-
-type TravelBufferMap = Record<string, TravelBuffer>;
-
-const DEFAULT_LOCATION = "Default office";
-const TRAVEL_BUFFER_STORAGE_KEY = "lazy-teamup-travel-buffers";
-
-function loadTravelBuffers(): TravelBufferMap {
-  if (typeof window === "undefined") return {};
-
-  try {
-    return JSON.parse(
-      localStorage.getItem(TRAVEL_BUFFER_STORAGE_KEY) ?? "{}",
-    ) as TravelBufferMap;
-  } catch {
-    return {};
-  }
-}
-
-function extractLocationFromTitle(title: string) {
-  const match = title.match(/@(.+)$/);
-  return match ? match[1].trim() : DEFAULT_LOCATION;
-}
+import { useGlobalSettings } from "@/features/settings/GlobalSettingsProvider";
+import {
+  DEFAULT_LOCATION,
+  extractLocationFromTitle,
+  getUniqueNonDefaultLocations,
+} from "@/features/travel-buffer/utils";
+import { TravelBufferMap } from "@/features/travel-buffer/types";
 
 function getTravelWarnings(
   parsed: {
@@ -304,7 +285,16 @@ export function QueCheckForm({ events, dateFormat }: Props) {
 
   const [manualTitle, setManualTitle] = useState("");
   const [manualLocation, setManualLocation] = useState("");
-  const [travelBuffers] = useState<TravelBufferMap>(() => loadTravelBuffers());
+  const { travelBuffers, ensureTravelBuffersForLocations } =
+    useGlobalSettings();
+
+  const detectedLocations = useMemo(() => {
+    return getUniqueNonDefaultLocations(events);
+  }, [events]);
+
+  useEffect(() => {
+    ensureTravelBuffersForLocations(detectedLocations);
+  }, [detectedLocations, ensureTravelBuffersForLocations]);
   const [manualEvents, setManualEvents] = useState<ManualEvent[]>([
     {
       sameDay: true,
@@ -335,7 +325,7 @@ export function QueCheckForm({ events, dateFormat }: Props) {
           error instanceof Error ? error.message : "Unable to parse message.",
       };
     }
-  }, [submitted, message, events]);
+  }, [submitted, message, events, travelBuffers]);
   function addManualEvent() {
     setManualEvents((current) => [
       ...current,

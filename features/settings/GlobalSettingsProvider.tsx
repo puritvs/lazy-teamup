@@ -9,8 +9,8 @@ import {
   useState,
 } from "react";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
-import { TeamupEvent, GlobalSettingsContextValue } from "./types";
 import { TravelBufferMap } from "@/features/travel-buffer/types";
+import { TeamupEvent, GlobalSettingsContextValue } from "./types";
 
 const DEFAULT_TRAVEL_BUFFER_MINUTES = 30;
 
@@ -52,8 +52,8 @@ export function GlobalSettingsProvider({ children }: { children: ReactNode }) {
   const ensureTravelBuffersForLocations = useCallback(
     (locations: string[]) => {
       setTravelBuffers((current) => {
-        let changed = false;
         const next = { ...current };
+        let changed = false;
 
         for (const location of locations) {
           if (!next[location]) {
@@ -85,7 +85,6 @@ export function GlobalSettingsProvider({ children }: { children: ReactNode }) {
     }),
     [
       events,
-      setEvents,
       excludedTitles,
       setExcludedTitles,
       filteredEvents,
