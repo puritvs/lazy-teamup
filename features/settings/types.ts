@@ -1,4 +1,4 @@
-// features/settings/types.ts
+import { Dispatch, SetStateAction } from "react";
 import { TravelBufferMap } from "@/features/travel-buffer/types";
 
 export type TeamupEvent = {
@@ -10,19 +10,21 @@ export type TeamupEvent = {
 
 export type GlobalSettingsContextValue = {
   events: TeamupEvent[];
-  setEvents: React.Dispatch<React.SetStateAction<TeamupEvent[]>>;
+  setEvents: Dispatch<SetStateAction<TeamupEvent[]>>;
 
   excludedTitles: string[];
-  setExcludedTitles: React.Dispatch<React.SetStateAction<string[]>>;
+  setExcludedTitles: Dispatch<SetStateAction<string[]>>;
 
   filteredEvents: TeamupEvent[];
 
   travelBuffers: TravelBufferMap;
-  setTravelBuffers: React.Dispatch<React.SetStateAction<TravelBufferMap>>;
+  setTravelBuffers: Dispatch<SetStateAction<TravelBufferMap>>;
 
   updateTravelBuffer: (
     location: string,
     key: "from" | "to",
     value: number,
   ) => void;
+
+  ensureTravelBuffersForLocations: (locations: string[]) => void;
 };

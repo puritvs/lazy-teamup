@@ -1,10 +1,18 @@
-// features/settings/GlobalSettingsProvider.tsx
 "use client";
 
-import { createContext, useContext, useMemo, useState, ReactNode } from "react";
+import {
+  createContext,
+  ReactNode,
+  useCallback,
+  useContext,
+  useMemo,
+  useState,
+} from "react";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
-import { TravelBufferMap } from "@/features/travel-buffer/types";
 import { TeamupEvent, GlobalSettingsContextValue } from "./types";
+import { TravelBufferMap } from "@/features/travel-buffer/types";
+
+const DEFAULT_TRAVEL_BUFFER_MINUTES = 30;
 
 const GlobalSettingsContext = createContext<GlobalSettingsContextValue | null>(
   null,
@@ -27,34 +35,69 @@ export function GlobalSettingsProvider({ children }: { children: ReactNode }) {
     return events.filter((event) => !excludedTitles.includes(event.title));
   }, [events, excludedTitles]);
 
-  function updateTravelBuffer(
-    location: string,
-    key: "from" | "to",
-    value: number,
-  ) {
-    setTravelBuffers((current) => ({
-      ...current,
-      [location]: {
-        from: current[location]?.from ?? 30,
-        to: current[location]?.to ?? 30,
-        [key]: Math.max(0, value),
-      },
-    }));
-  }
+  const updateTravelBuffer = useCallback(
+    (location: string, key: "from" | "to", value: number) => {
+      setTravelBuffers((current) => ({
+        ...current,
+        [location]: {
+          from: current[location]?.from ?? DEFAULT_TRAVEL_BUFFER_MINUTES,
+          to: current[location]?.to ?? DEFAULT_TRAVEL_BUFFER_MINUTES,
+          [key]: Math.max(0, value),
+        },
+      }));
+    },
+    [setTravelBuffers],
+  );
+
+  const ensureTravelBuffersForLocations = useCallback(
+    (locations: string[]) => {
+      setTravelBuffers((current) => {
+        let changed = false;
+        const next = { ...current };
+
+        for (const location of locations) {
+          if (!next[location]) {
+            next[location] = {
+              from: DEFAULT_TRAVEL_BUFFER_MINUTES,
+              to: DEFAULT_TRAVEL_BUFFER_MINUTES,
+            };
+            changed = true;
+          }
+        }
+
+        return changed ? next : current;
+      });
+    },
+    [setTravelBuffers],
+  );
+
+  const value = useMemo<GlobalSettingsContextValue>(
+    () => ({
+      events,
+      setEvents,
+      excludedTitles,
+      setExcludedTitles,
+      filteredEvents,
+      travelBuffers,
+      setTravelBuffers,
+      updateTravelBuffer,
+      ensureTravelBuffersForLocations,
+    }),
+    [
+      events,
+      setEvents,
+      excludedTitles,
+      setExcludedTitles,
+      filteredEvents,
+      travelBuffers,
+      setTravelBuffers,
+      updateTravelBuffer,
+      ensureTravelBuffersForLocations,
+    ],
+  );
 
   return (
-    <GlobalSettingsContext.Provider
-      value={{
-        events,
-        setEvents,
-        excludedTitles,
-        setExcludedTitles,
-        filteredEvents,
-        travelBuffers,
-        setTravelBuffers,
-        updateTravelBuffer,
-      }}
-    >
+    <GlobalSettingsContext.Provider value={value}>
       {children}
     </GlobalSettingsContext.Provider>
   );

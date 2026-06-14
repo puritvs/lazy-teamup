@@ -13,7 +13,7 @@ type Props = {
 };
 
 export function GlobalTravelBufferModal({ open, onClose, events }: Props) {
-  const { travelBuffers, setTravelBuffers, updateTravelBuffer } =
+  const { travelBuffers, updateTravelBuffer, ensureTravelBuffersForLocations } =
     useGlobalSettings();
 
   const detectedLocations = useMemo(() => {
@@ -21,24 +21,11 @@ export function GlobalTravelBufferModal({ open, onClose, events }: Props) {
   }, [events]);
 
   useEffect(() => {
-    setTravelBuffers((current) => {
-      const next = { ...current };
-      let changed = false;
-
-      for (const location of detectedLocations) {
-        if (!next[location]) {
-          next[location] = { from: 30, to: 30 };
-          changed = true;
-        }
-      }
-
-      return changed ? next : current;
-    });
-  }, [detectedLocations, setTravelBuffers]);
+    ensureTravelBuffersForLocations(detectedLocations);
+  }, [detectedLocations, ensureTravelBuffersForLocations]);
 
   if (!open) return null;
 
-  // keep your existing JSX here
   return (
     <div className="fixed inset-0 z-50 bg-black/70 p-3">
       <div className="mx-auto max-h-[90vh] max-w-3xl overflow-y-auto rounded-xl border border-zinc-800 bg-zinc-950 p-4">

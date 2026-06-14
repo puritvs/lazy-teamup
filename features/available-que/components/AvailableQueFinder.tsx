@@ -194,7 +194,7 @@ export function AvailableQueFinder({ events, dateFormat }: Props) {
     return getUniqueNonDefaultLocations(events);
   }, [events]);
   const minDurationMinutes = minDurationHours * 60 + minDurationMins;
-  const { setTravelBuffers } = useGlobalSettings();
+  const { ensureTravelBuffersForLocations } = useGlobalSettings();
   const error = useMemo(() => {
     if (startDate > endDate) {
       return "Start date cannot be after end date.";
@@ -259,20 +259,8 @@ export function AvailableQueFinder({ events, dateFormat }: Props) {
     events,
   );
   useEffect(() => {
-    setTravelBuffers((current) => {
-      let changed = false;
-      const next = { ...current };
-
-      for (const location of detectedLocations) {
-        if (!next[location]) {
-          next[location] = { from: 30, to: 30 };
-          changed = true;
-        }
-      }
-
-      return changed ? next : current;
-    });
-  }, [detectedLocations, setTravelBuffers]);
+    ensureTravelBuffersForLocations(detectedLocations);
+  }, [detectedLocations, ensureTravelBuffersForLocations]);
   return (
     <section className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5">
       <div className="mb-4">
