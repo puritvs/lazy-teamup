@@ -128,7 +128,33 @@ export function CalendarDashboard() {
     showCalendarQueCheck,
     calendarLayers.queCheck,
   ]);
-
+  const quickInsights = [
+    {
+      label: "Events",
+      value: filteredEvents.length,
+      tone: "text-zinc-100",
+    },
+    {
+      label: "Overlapping events",
+      value: highlightedEventIds.size,
+      tone: "text-red-200",
+    },
+    {
+      label: "Overlap groups",
+      value: overlapGroups.length,
+      tone: "text-red-200",
+    },
+    {
+      label: "Available Que",
+      value: calendarLayers.availableQue.length,
+      tone: "text-emerald-200",
+    },
+    {
+      label: "Que Check",
+      value: calendarLayers.queCheck.length,
+      tone: "text-sky-200",
+    },
+  ];
   return (
     <div className="space-y-6 sm:space-y-8">
       <section className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5 sm:p-6">
@@ -189,7 +215,30 @@ export function CalendarDashboard() {
           </button>
         </div>
       </section>
+      <section className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5 sm:p-6">
+        <div className="mb-4">
+          <h2 className="text-lg font-bold text-zinc-100">Quick Insights</h2>
+          <p className="text-sm text-zinc-400">
+            Current filtered calendar overview.
+          </p>
+        </div>
 
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          {quickInsights.map((item) => (
+            <div
+              key={item.label}
+              className="rounded-lg border border-zinc-800 bg-zinc-950 p-4"
+            >
+              <p className="text-xs uppercase tracking-wide text-zinc-500">
+                {item.label}
+              </p>
+              <p className={`mt-2 text-2xl font-bold ${item.tone}`}>
+                {item.value}
+              </p>
+            </div>
+          ))}
+        </div>
+      </section>
       <section className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5 sm:p-6">
         <button
           type="button"

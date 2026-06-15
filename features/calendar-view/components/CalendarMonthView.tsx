@@ -368,7 +368,7 @@ export function CalendarMonthView({
           </div>
 
           {filteredSelectedItems.length === 0 ? (
-            <p className="text-sm text-zinc-500">No items for this day.</p>
+            <p className="text-sm text-zinc-500">No items for this tab.</p>
           ) : (
             <div className="space-y-2">
               {filteredSelectedItems.map((item) => (
