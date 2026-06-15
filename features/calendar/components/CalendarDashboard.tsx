@@ -243,7 +243,7 @@ export function CalendarDashboard() {
               checked={highlightConflicts}
               onChange={(event) => setHighlightConflicts(event.target.checked)}
             />
-            Highlight conflicts ({highlightedEventIds.size})
+            Highlight overlaps ({highlightedEventIds.size})
           </label>
 
           <label className="flex items-center gap-2 rounded-lg border border-zinc-800 bg-zinc-950 p-3 text-sm text-zinc-300">
