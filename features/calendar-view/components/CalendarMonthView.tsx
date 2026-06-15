@@ -11,7 +11,6 @@ type TeamupEvent = {
   start_dt: string;
   end_dt: string;
 };
-
 type Props = {
   events: TeamupEvent[];
   visualItems?: CalendarVisualItem[];
@@ -97,7 +96,6 @@ function getVisibleItems(dayItems: CalendarVisualItem[]) {
     ...otherItems.slice(0, Math.max(0, remainingSlots)),
   ];
 }
-
 export function CalendarMonthView({
   events,
   visualItems = [],
@@ -200,6 +198,15 @@ export function CalendarMonthView({
           const dateKey = day.format("YYYY-MM-DD");
           const dayItems = itemsByDate.get(dateKey) ?? [];
           const visibleItems = getVisibleItems(dayItems);
+
+          const hiddenItems = dayItems.filter(
+            (item) =>
+              !visibleItems.some((visibleItem) => visibleItem.id === item.id),
+          );
+
+          const hiddenConflictCount = hiddenItems.filter(
+            (item) => item.type === "conflict" && !isConflictNotice(item),
+          ).length;
           const hiddenItemCount = Math.max(
             0,
             dayItems.length - visibleItems.length,
@@ -223,19 +230,6 @@ export function CalendarMonthView({
                 <span className="text-xs font-semibold text-zinc-300">
                   {day.date()}
                 </span>
-
-                {dayItems.length > 0 && (
-                  <span
-                    className={[
-                      "rounded-full px-1.5 py-0.5 text-[10px]",
-                      hasHiddenItems
-                        ? "bg-amber-900 text-amber-100"
-                        : "bg-zinc-800 text-zinc-300",
-                    ].join(" ")}
-                  >
-                    {dayItems.length}
-                  </span>
-                )}
               </div>
 
               <div className="space-y-1">
@@ -259,6 +253,9 @@ export function CalendarMonthView({
                 {hasHiddenItems && (
                   <div className="rounded border border-amber-800 bg-amber-950/60 px-2 py-1 text-[11px] font-medium text-amber-100">
                     +{hiddenItemCount} hidden items
+                    {hiddenConflictCount > 0
+                      ? ` • ${hiddenConflictCount} conflicts`
+                      : ""}
                   </div>
                 )}
               </div>
