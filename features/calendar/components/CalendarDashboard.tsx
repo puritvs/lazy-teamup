@@ -8,7 +8,11 @@ import { DateDisplayFormat } from "@/utils/date";
 import { useGlobalSettings } from "@/features/settings/GlobalSettingsProvider";
 import { CalendarMonthView } from "@/features/calendar-view/components/CalendarMonthView";
 import { CalendarVisualItem } from "@/features/calendar-view/types";
-import { findOverlappingEvents } from "@/features/calendar-overlaps/services/findOverlappingEvents";
+import {
+  findOverlappingEvents,
+  getOverlappingEventIds,
+} from "@/features/calendar-overlaps/services/findOverlappingEvents";
+
 type TeamupEvent = {
   id: string;
   title: string;
@@ -38,7 +42,7 @@ export function CalendarDashboard() {
     useState<DateDisplayFormat>("day-month-year");
   const { setEvents, filteredEvents, calendarLayers } = useGlobalSettings();
   const [showCalendarEvents, setShowCalendarEvents] = useState(true);
-  const [showCalendarConflicts, setShowCalendarConflicts] = useState(false);
+  const [highlightConflicts, setHighlightConflicts] = useState(false);
   const [showCalendarAvailableQue, setShowCalendarAvailableQue] =
     useState(false);
   const [showCalendarQueCheck, setShowCalendarQueCheck] = useState(false);
@@ -63,48 +67,24 @@ export function CalendarDashboard() {
       setLoadingEvents(false);
     }
   }
-  const conflictCalendarItems = useMemo<CalendarVisualItem[]>(() => {
+  const highlightedEventIds = useMemo(() => {
+    if (!highlightConflicts) return new Set<string>();
+
     const overlapGroups = findOverlappingEvents(filteredEvents);
+    return getOverlappingEventIds(overlapGroups);
+  }, [highlightConflicts, filteredEvents]);
 
-    return overlapGroups.map((group, index) => {
-      const sortedEvents = [...group.events].sort(
-        (a, b) =>
-          new Date(a.start_dt).getTime() - new Date(b.start_dt).getTime(),
-      );
-
-      const start = sortedEvents[0];
-      const end = [...sortedEvents].sort(
-        (a, b) => new Date(b.end_dt).getTime() - new Date(a.end_dt).getTime(),
-      )[0];
-
-      return {
-        id: `conflict-${index}-${start.id}`,
-        type: "conflict",
-        title: `${group.events.length} overlapping events`,
-        start_dt: start.start_dt,
-        end_dt: end.end_dt,
-        description: group.events.map((event) => event.title).join(" / "),
-      };
-    });
-  }, [filteredEvents]);
-
-  const calendarVisualItems = useMemo<CalendarVisualItem[]>(() => {
+  const calendarVisualItems = useMemo(() => {
     return [
-      ...(showCalendarConflicts ? conflictCalendarItems : []),
       ...(showCalendarAvailableQue ? calendarLayers.availableQue : []),
       ...(showCalendarQueCheck ? calendarLayers.queCheck : []),
     ];
   }, [
-    showCalendarConflicts,
-    conflictCalendarItems,
     showCalendarAvailableQue,
     calendarLayers.availableQue,
     showCalendarQueCheck,
     calendarLayers.queCheck,
   ]);
-  useEffect(() => {
-    loadEvents();
-  }, [year, month]);
 
   return (
     <div className="space-y-6 sm:space-y-8">
@@ -218,12 +198,10 @@ export function CalendarDashboard() {
           <label className="flex items-center gap-2 rounded-lg border border-zinc-800 bg-zinc-950 p-3 text-sm text-zinc-300">
             <input
               type="checkbox"
-              checked={showCalendarConflicts}
-              onChange={(event) =>
-                setShowCalendarConflicts(event.target.checked)
-              }
+              checked={highlightConflicts}
+              onChange={(event) => setHighlightConflicts(event.target.checked)}
             />
-            Conflicts ({conflictCalendarItems.length})
+            Highlight conflicts ({highlightedEventIds.size})
           </label>
 
           <label className="flex items-center gap-2 rounded-lg border border-zinc-800 bg-zinc-950 p-3 text-sm text-zinc-300">
@@ -253,6 +231,7 @@ export function CalendarDashboard() {
         <CalendarMonthView
           events={showCalendarEvents ? filteredEvents : []}
           visualItems={calendarVisualItems}
+          highlightedEventIds={highlightedEventIds}
           year={year}
           month={month}
           dateFormat={dateFormat}

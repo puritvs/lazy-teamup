@@ -15,12 +15,14 @@ type TeamupEvent = {
 type Props = {
   events: TeamupEvent[];
   visualItems?: CalendarVisualItem[];
+  highlightedEventIds?: Set<string>;
   year: number;
   month: number;
   dateFormat: DateDisplayFormat;
 };
 
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const MAX_VISIBLE_ITEMS_PER_DAY = 4;
 
 function getMonthGrid(year: number, month: number) {
   const firstDay = dayjs(`${year}-${String(month).padStart(2, "0")}-01`);
@@ -70,6 +72,7 @@ function getItemPrefix(type: CalendarVisualItem["type"]) {
 export function CalendarMonthView({
   events,
   visualItems = [],
+  highlightedEventIds = new Set(),
   year,
   month,
   dateFormat,
@@ -79,17 +82,22 @@ export function CalendarMonthView({
   const days = useMemo(() => getMonthGrid(year, month), [year, month]);
 
   const allItems = useMemo<CalendarVisualItem[]>(() => {
-    const eventItems: CalendarVisualItem[] = events.map((event) => ({
-      id: `event-${event.id}`,
-      sourceId: event.id,
-      type: "event",
-      title: event.title,
-      start_dt: event.start_dt,
-      end_dt: event.end_dt,
-    }));
+    const eventItems: CalendarVisualItem[] = events.map((event) => {
+      const isConflict = highlightedEventIds.has(event.id);
+
+      return {
+        id: `event-${event.id}`,
+        sourceId: event.id,
+        type: isConflict ? "conflict" : "event",
+        title: event.title,
+        start_dt: event.start_dt,
+        end_dt: event.end_dt,
+        description: isConflict ? "Conflict detected" : undefined,
+      };
+    });
 
     return [...eventItems, ...visualItems];
-  }, [events, visualItems]);
+  }, [events, visualItems, highlightedEventIds]);
 
   const itemsByDate = useMemo(() => {
     const map = new Map<string, CalendarVisualItem[]>();
@@ -141,6 +149,11 @@ export function CalendarMonthView({
         {days.map((day) => {
           const dateKey = day.format("YYYY-MM-DD");
           const dayItems = itemsByDate.get(dateKey) ?? [];
+          const hiddenItemCount = Math.max(
+            0,
+            dayItems.length - MAX_VISIBLE_ITEMS_PER_DAY,
+          );
+          const hasHiddenItems = hiddenItemCount > 0;
           const isCurrentMonth = day.month() + 1 === month;
           const isSelected = selectedDate === dateKey;
 
@@ -161,14 +174,21 @@ export function CalendarMonthView({
                 </span>
 
                 {dayItems.length > 0 && (
-                  <span className="rounded-full bg-zinc-800 px-1.5 py-0.5 text-[10px] text-zinc-300">
+                  <span
+                    className={[
+                      "rounded-full px-1.5 py-0.5 text-[10px]",
+                      hasHiddenItems
+                        ? "bg-amber-900 text-amber-100"
+                        : "bg-zinc-800 text-zinc-300",
+                    ].join(" ")}
+                  >
                     {dayItems.length}
                   </span>
                 )}
               </div>
 
               <div className="space-y-1">
-                {dayItems.slice(0, 4).map((item) => (
+                {dayItems.slice(0, MAX_VISIBLE_ITEMS_PER_DAY).map((item) => (
                   <div
                     key={`${dateKey}-${item.id}`}
                     className={[
@@ -182,9 +202,9 @@ export function CalendarMonthView({
                   </div>
                 ))}
 
-                {dayItems.length > 4 && (
-                  <div className="text-[11px] text-zinc-500">
-                    +{dayItems.length - 4} more
+                {hasHiddenItems && (
+                  <div className="rounded border border-amber-800 bg-amber-950/60 px-2 py-1 text-[11px] font-medium text-amber-100">
+                    +{hiddenItemCount} hidden items
                   </div>
                 )}
               </div>
