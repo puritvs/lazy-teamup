@@ -7,6 +7,7 @@ import { OverlapSummary } from "@/features/calendar-overlaps/components/OverlapS
 import { AvailableQueFinder } from "@/features/available-que/components/AvailableQueFinder";
 import { DateDisplayFormat } from "@/utils/date";
 import { useGlobalSettings } from "@/features/settings/GlobalSettingsProvider";
+import { CalendarMonthView } from "@/features/calendar-view/components/CalendarMonthView";
 type TeamupEvent = {
   id: string;
   title: string;
@@ -175,28 +176,12 @@ export function CalendarDashboard() {
         <AvailableQueFinder events={filteredEvents} dateFormat={dateFormat} />
       </div>
       <section className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5 sm:p-6">
-        <button
-          type="button"
-          onClick={() => setShowEventList((current) => !current)}
-          className="flex w-full items-center justify-between"
-        >
-          <div className="text-left">
-            <h2 className="text-lg font-bold text-zinc-100">Raw Event Data</h2>
-            <p className="text-sm text-zinc-400">
-              {filteredEvents.length} visible / {rawEvents.length} total events
-            </p>
-          </div>
-
-          <span className="text-sm text-zinc-400">
-            {showEventList ? "Hide" : "Show"}
-          </span>
-        </button>
-
-        {showEventList && (
-          <div className="mt-5">
-            <EventList events={filteredEvents} dateFormat={dateFormat} />
-          </div>
-        )}
+        <CalendarMonthView
+          events={filteredEvents}
+          year={year}
+          month={month}
+          dateFormat={dateFormat}
+        />
       </section>
     </div>
   );
