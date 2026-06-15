@@ -167,7 +167,14 @@ export function CalendarMonthView({
   const selectedItems = selectedDate
     ? (itemsByDate.get(selectedDate) ?? [])
     : [];
-
+  const eventCount = events.length;
+  const conflictCount = highlightedEventIds.size;
+  const availableQueCount = visualItems.filter(
+    (item) => item.type === "available-que",
+  ).length;
+  const queCheckCount = visualItems.filter(
+    (item) => item.type === "que-check",
+  ).length;
   return (
     <section className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5">
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -209,16 +216,16 @@ export function CalendarMonthView({
 
       <div className="mb-3 flex flex-wrap gap-2 text-xs">
         <span className="rounded border border-zinc-700 bg-zinc-800 px-2 py-1 text-zinc-100">
-          Event
+          Event ({eventCount})
         </span>
         <span className="rounded border border-red-900 bg-red-950/30 px-2 py-1 text-red-200">
-          Conflict
+          Overlap ({conflictCount})
         </span>
         <span className="rounded border border-emerald-800 bg-emerald-950/70 px-2 py-1 text-emerald-100">
-          Available Que
+          Available Que ({availableQueCount})
         </span>
         <span className="rounded border border-sky-800 bg-sky-950/70 px-2 py-1 text-sky-100">
-          Que Check
+          Que Check ({queCheckCount})
         </span>
       </div>
 
