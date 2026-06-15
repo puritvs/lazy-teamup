@@ -12,7 +12,6 @@ import {
   findOverlappingEvents,
   getOverlappingEventIds,
 } from "@/features/calendar-overlaps/services/findOverlappingEvents";
-
 type TeamupEvent = {
   id: string;
   title: string;
@@ -42,7 +41,7 @@ export function CalendarDashboard() {
     useState<DateDisplayFormat>("day-month-year");
   const { setEvents, filteredEvents, calendarLayers } = useGlobalSettings();
   const [showCalendarEvents, setShowCalendarEvents] = useState(true);
-  const [highlightConflicts, setHighlightConflicts] = useState(false);
+  const [highlightConflicts, setHighlightConflicts] = useState(true);
   const [showCalendarAvailableQue, setShowCalendarAvailableQue] =
     useState(false);
   const [showCalendarQueCheck, setShowCalendarQueCheck] = useState(false);
