@@ -54,10 +54,17 @@ function getItemDateKeys(item: { start_dt: string; end_dt: string }) {
 }
 
 function getItemStyle(type: CalendarVisualItem["type"]) {
-  if (type === "conflict") return "border-red-800 bg-red-950/70 text-red-100";
-  if (type === "available-que")
+  if (type === "conflict") {
+    return "border-red-900 bg-red-950/30 text-red-200";
+  }
+
+  if (type === "available-que") {
     return "border-emerald-800 bg-emerald-950/70 text-emerald-100";
-  if (type === "que-check") return "border-sky-800 bg-sky-950/70 text-sky-100";
+  }
+
+  if (type === "que-check") {
+    return "border-sky-800 bg-sky-950/70 text-sky-100";
+  }
 
   return "border-zinc-700 bg-zinc-800 text-zinc-100";
 }
@@ -67,6 +74,28 @@ function getItemPrefix(type: CalendarVisualItem["type"]) {
   if (type === "available-que") return "Free";
   if (type === "que-check") return "Que";
   return "";
+}
+
+function isConflictNotice(item: CalendarVisualItem) {
+  return item.type === "conflict" && item.id.startsWith("conflict-notice-");
+}
+
+function getVisibleItems(dayItems: CalendarVisualItem[]) {
+  const conflictNotices = dayItems.filter(isConflictNotice);
+  const otherItems = dayItems.filter((item) => !isConflictNotice(item));
+
+  const visibleConflictNotices = conflictNotices.slice(
+    0,
+    MAX_VISIBLE_ITEMS_PER_DAY,
+  );
+
+  const remainingSlots =
+    MAX_VISIBLE_ITEMS_PER_DAY - visibleConflictNotices.length;
+
+  return [
+    ...visibleConflictNotices,
+    ...otherItems.slice(0, Math.max(0, remainingSlots)),
+  ];
 }
 
 export function CalendarMonthView({
@@ -92,7 +121,9 @@ export function CalendarMonthView({
         title: event.title,
         start_dt: event.start_dt,
         end_dt: event.end_dt,
-        description: isConflict ? "Conflict detected" : undefined,
+        description: isConflict
+          ? "This event is involved in a conflict."
+          : undefined,
       };
     });
 
@@ -113,10 +144,14 @@ export function CalendarMonthView({
     for (const [key, dayItems] of map) {
       map.set(
         key,
-        [...dayItems].sort(
-          (a, b) =>
-            new Date(a.start_dt).getTime() - new Date(b.start_dt).getTime(),
-        ),
+        [...dayItems].sort((a, b) => {
+          if (isConflictNotice(a) && !isConflictNotice(b)) return -1;
+          if (!isConflictNotice(a) && isConflictNotice(b)) return 1;
+
+          return (
+            new Date(a.start_dt).getTime() - new Date(b.start_dt).getTime()
+          );
+        }),
       );
     }
 
@@ -136,6 +171,21 @@ export function CalendarMonthView({
         </p>
       </div>
 
+      <div className="mb-3 flex flex-wrap gap-2 text-xs">
+        <span className="rounded border border-zinc-700 bg-zinc-800 px-2 py-1 text-zinc-100">
+          Event
+        </span>
+        <span className="rounded border border-red-900 bg-red-950/30 px-2 py-1 text-red-200">
+          Conflict
+        </span>
+        <span className="rounded border border-emerald-800 bg-emerald-950/70 px-2 py-1 text-emerald-100">
+          Available Que
+        </span>
+        <span className="rounded border border-sky-800 bg-sky-950/70 px-2 py-1 text-sky-100">
+          Que Check
+        </span>
+      </div>
+
       <div className="grid grid-cols-7 gap-px overflow-hidden rounded-lg border border-zinc-800 bg-zinc-800">
         {WEEKDAYS.map((day) => (
           <div
@@ -149,9 +199,10 @@ export function CalendarMonthView({
         {days.map((day) => {
           const dateKey = day.format("YYYY-MM-DD");
           const dayItems = itemsByDate.get(dateKey) ?? [];
+          const visibleItems = getVisibleItems(dayItems);
           const hiddenItemCount = Math.max(
             0,
-            dayItems.length - MAX_VISIBLE_ITEMS_PER_DAY,
+            dayItems.length - visibleItems.length,
           );
           const hasHiddenItems = hiddenItemCount > 0;
           const isCurrentMonth = day.month() + 1 === month;
@@ -188,17 +239,20 @@ export function CalendarMonthView({
               </div>
 
               <div className="space-y-1">
-                {dayItems.slice(0, MAX_VISIBLE_ITEMS_PER_DAY).map((item) => (
+                {visibleItems.map((item) => (
                   <div
                     key={`${dateKey}-${item.id}`}
                     className={[
                       "truncate rounded border px-2 py-1 text-[11px]",
                       getItemStyle(item.type),
+                      isConflictNotice(item) ? "font-semibold" : "",
                     ].join(" ")}
-                    title={item.title}
+                    title={item.description ?? item.title}
                   >
                     {getItemPrefix(item.type)}{" "}
-                    {dayjs(item.start_dt).format("HH:mm")} {item.title}
+                    {isConflictNotice(item)
+                      ? item.title
+                      : `${dayjs(item.start_dt).format("HH:mm")} ${item.title}`}
                   </div>
                 ))}
 
@@ -239,11 +293,12 @@ export function CalendarMonthView({
                   className={[
                     "rounded-lg border p-3",
                     getItemStyle(item.type),
+                    isConflictNotice(item) ? "border-red-800" : "",
                   ].join(" ")}
                 >
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="rounded bg-black/30 px-2 py-0.5 text-xs uppercase">
-                      {item.type}
+                      {isConflictNotice(item) ? "conflict notice" : item.type}
                     </span>
 
                     <p className="font-medium">{item.title}</p>

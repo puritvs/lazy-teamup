@@ -67,19 +67,63 @@ export function CalendarDashboard() {
       setLoadingEvents(false);
     }
   }
+  const overlapGroups = useMemo(() => {
+    return findOverlappingEvents(filteredEvents);
+  }, [filteredEvents]);
+
   const highlightedEventIds = useMemo(() => {
     if (!highlightConflicts) return new Set<string>();
-
-    const overlapGroups = findOverlappingEvents(filteredEvents);
     return getOverlappingEventIds(overlapGroups);
-  }, [highlightConflicts, filteredEvents]);
+  }, [highlightConflicts, overlapGroups]);
+
+  const conflictNoticeItems = useMemo<CalendarVisualItem[]>(() => {
+    if (!highlightConflicts) return [];
+
+    return overlapGroups.map((group) => {
+      const sortedEvents = [...group.events].sort(
+        (a, b) =>
+          new Date(a.start_dt).getTime() - new Date(b.start_dt).getTime(),
+      );
+
+      const firstEvent = sortedEvents[0];
+
+      const latestEndEvent = [...sortedEvents].sort(
+        (a, b) => new Date(b.end_dt).getTime() - new Date(a.end_dt).getTime(),
+      )[0];
+
+      const startsAt = new Date(group.startTime);
+      const endsAt = new Date(group.endTime);
+      const spansMultipleDays =
+        startsAt.toISOString().slice(0, 10) !==
+        endsAt.toISOString().slice(0, 10);
+
+      return {
+        id: `conflict-notice-${group.id}`,
+        type: "conflict",
+        title: `${group.events.length} overlapping events`,
+        start_dt: firstEvent.start_dt,
+        end_dt: latestEndEvent.end_dt,
+        description: spansMultipleDays
+          ? `Conflict spans multiple days and ends ${endsAt.toLocaleDateString(
+              "en-GB",
+            )} ${String(endsAt.getHours()).padStart(2, "0")}:${String(
+              endsAt.getMinutes(),
+            ).padStart(2, "0")}. Events: ${group.events
+              .map((event) => event.title)
+              .join(" / ")}`
+          : group.events.map((event) => event.title).join(" / "),
+      };
+    });
+  }, [highlightConflicts, overlapGroups]);
 
   const calendarVisualItems = useMemo(() => {
     return [
+      ...conflictNoticeItems,
       ...(showCalendarAvailableQue ? calendarLayers.availableQue : []),
       ...(showCalendarQueCheck ? calendarLayers.queCheck : []),
     ];
   }, [
+    conflictNoticeItems,
     showCalendarAvailableQue,
     calendarLayers.availableQue,
     showCalendarQueCheck,
@@ -194,7 +238,6 @@ export function CalendarDashboard() {
             />
             Events
           </label>
-
           <label className="flex items-center gap-2 rounded-lg border border-zinc-800 bg-zinc-950 p-3 text-sm text-zinc-300">
             <input
               type="checkbox"
