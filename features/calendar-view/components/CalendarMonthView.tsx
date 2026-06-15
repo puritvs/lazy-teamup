@@ -23,6 +23,15 @@ type Props = {
 
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const MAX_VISIBLE_ITEMS_PER_DAY = 4;
+type DetailTab = "all" | "event" | "conflict" | "available-que" | "que-check";
+
+const DETAIL_TABS: { value: DetailTab; label: string }[] = [
+  { value: "all", label: "All" },
+  { value: "event", label: "Events" },
+  { value: "conflict", label: "Overlaps" },
+  { value: "available-que", label: "Available Que" },
+  { value: "que-check", label: "Que Check" },
+];
 
 function getMonthGrid(year: number, month: number) {
   const firstDay = dayjs(`${year}-${String(month).padStart(2, "0")}-01`);
@@ -107,6 +116,7 @@ export function CalendarMonthView({
   onMonthChange,
 }: Props) {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [detailTab, setDetailTab] = useState<DetailTab>("all");
   const currentMonth = dayjs(`${year}-${String(month).padStart(2, "0")}-01`);
   const today = dayjs();
 
@@ -167,6 +177,14 @@ export function CalendarMonthView({
   const selectedItems = selectedDate
     ? (itemsByDate.get(selectedDate) ?? [])
     : [];
+  const filteredSelectedItems =
+    detailTab === "all"
+      ? selectedItems
+      : selectedItems.filter((item) => {
+          if (detailTab === "event") return item.type === "event";
+          if (detailTab === "conflict") return item.type === "conflict";
+          return item.type === detailTab;
+        });
   const eventCount = events.length;
   const conflictCount = highlightedEventIds.size;
   const availableQueCount = visualItems.filter(
@@ -264,7 +282,10 @@ export function CalendarMonthView({
             <button
               key={dateKey}
               type="button"
-              onClick={() => setSelectedDate(dateKey)}
+              onClick={() => {
+                setSelectedDate(dateKey);
+                setDetailTab("all");
+              }}
               className={[
                 "min-h-28 bg-zinc-950 p-2 text-left align-top transition hover:bg-zinc-900",
                 !isCurrentMonth ? "opacity-40" : "",
@@ -324,12 +345,33 @@ export function CalendarMonthView({
               Clear
             </button>
           </div>
+          <div className="mb-3 flex flex-wrap gap-2">
+            {DETAIL_TABS.map((tab) => {
+              const isActive = detailTab === tab.value;
 
-          {selectedItems.length === 0 ? (
-            <p className="text-sm text-zinc-500">No items on this day.</p>
+              return (
+                <button
+                  key={tab.value}
+                  type="button"
+                  onClick={() => setDetailTab(tab.value)}
+                  className={[
+                    "rounded-full border px-3 py-1 text-xs transition",
+                    isActive
+                      ? "border-white bg-white text-black"
+                      : "border-zinc-800 bg-zinc-900 text-zinc-300 hover:bg-zinc-800",
+                  ].join(" ")}
+                >
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
+
+          {filteredSelectedItems.length === 0 ? (
+            <p className="text-sm text-zinc-500">No items for this day.</p>
           ) : (
             <div className="space-y-2">
-              {selectedItems.map((item) => (
+              {filteredSelectedItems.map((item) => (
                 <div
                   key={item.id}
                   className={[
