@@ -18,6 +18,7 @@ type Props = {
   year: number;
   month: number;
   dateFormat: DateDisplayFormat;
+  onMonthChange?: (year: number, month: number) => void;
 };
 
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -103,9 +104,16 @@ export function CalendarMonthView({
   year,
   month,
   dateFormat,
+  onMonthChange,
 }: Props) {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const currentMonth = dayjs(`${year}-${String(month).padStart(2, "0")}-01`);
+  const today = dayjs();
 
+  function changeMonth(nextMonth: dayjs.Dayjs) {
+    onMonthChange?.(nextMonth.year(), nextMonth.month() + 1);
+    setSelectedDate(null);
+  }
   const days = useMemo(() => getMonthGrid(year, month), [year, month]);
 
   const allItems = useMemo<CalendarVisualItem[]>(() => {
@@ -162,11 +170,41 @@ export function CalendarMonthView({
 
   return (
     <section className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5">
-      <div className="mb-4">
-        <h2 className="text-lg font-bold text-zinc-100">Calendar</h2>
-        <p className="text-sm text-zinc-400">
-          Month view using current filters and enabled visualization layers.
-        </p>
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 className="text-lg font-bold text-zinc-100">
+            {currentMonth.format("MMMM YYYY")}
+          </h2>
+          <p className="text-sm text-zinc-400">
+            Month view using current filters and enabled visualization layers.
+          </p>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => changeMonth(currentMonth.subtract(1, "month"))}
+            className="rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-200 hover:bg-zinc-900"
+          >
+            Previous
+          </button>
+
+          <button
+            type="button"
+            onClick={() => changeMonth(today.startOf("month"))}
+            className="rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-200 hover:bg-zinc-900"
+          >
+            Today
+          </button>
+
+          <button
+            type="button"
+            onClick={() => changeMonth(currentMonth.add(1, "month"))}
+            className="rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-200 hover:bg-zinc-900"
+          >
+            Next
+          </button>
+        </div>
       </div>
 
       <div className="mb-3 flex flex-wrap gap-2 text-xs">

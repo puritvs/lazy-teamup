@@ -175,7 +175,7 @@ export function CalendarDashboard() {
               className="w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-zinc-100 outline-none"
             >
               <option value="day-month-year">01-06-2026</option>
-              <option value="month-name">01 Jun 2026</option>r.leng
+              <option value="month-name">01 Jun 2026</option>
             </select>
           </label>
 
@@ -277,6 +277,10 @@ export function CalendarDashboard() {
           year={year}
           month={month}
           dateFormat={dateFormat}
+          onMonthChange={(nextYear, nextMonth) => {
+            setYear(nextYear);
+            setMonth(nextMonth);
+          }}
         />
       </section>
     </div>
