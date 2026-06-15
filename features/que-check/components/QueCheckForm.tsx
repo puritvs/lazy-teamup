@@ -106,6 +106,14 @@ type Props = {
   events: QueCheckEvent[];
   dateFormat: DateDisplayFormat;
 };
+type QueCheckStep = "input" | "review" | "visualize" | "results";
+
+const QUE_CHECK_STEPS: { value: QueCheckStep; label: string }[] = [
+  { value: "input", label: "Input" },
+  { value: "review", label: "Review" },
+  { value: "visualize", label: "Visualize" },
+  { value: "results", label: "Results" },
+];
 const sampleMessage = `Title: BUS Rehearsal
 Location: Sunray
 
@@ -283,6 +291,7 @@ export function QueCheckForm({ events, dateFormat }: Props) {
   const [showGeneralPrompt, setShowGeneralPrompt] = useState(false);
   const [showPersonalPrompt, setShowPersonalPrompt] = useState(false);
   const [inputMode, setInputMode] = useState<"text" | "manual">("text");
+  const [workflowStep, setWorkflowStep] = useState<QueCheckStep>("input");
 
   const [manualTitle, setManualTitle] = useState("");
   const [manualLocation, setManualLocation] = useState("");
@@ -413,6 +422,28 @@ export function QueCheckForm({ events, dateFormat }: Props) {
         <p className="text-sm text-zinc-400">
           Paste normalized queue text to check for overlapping events.
         </p>
+      </div>
+      <div className="mb-4 grid gap-2 sm:grid-cols-4">
+        {QUE_CHECK_STEPS.map((step, index) => {
+          const isActive = workflowStep === step.value;
+
+          return (
+            <button
+              key={step.value}
+              type="button"
+              onClick={() => setWorkflowStep(step.value)}
+              className={[
+                "rounded-lg border px-3 py-2 text-left text-sm transition",
+                isActive
+                  ? "border-white bg-white text-black"
+                  : "border-zinc-800 bg-zinc-950 text-zinc-300 hover:bg-zinc-900",
+              ].join(" ")}
+            >
+              <span className="mr-2 text-xs opacity-70">{index + 1}</span>
+              {step.label}
+            </button>
+          );
+        })}
       </div>
       <div className="mb-4 flex gap-2">
         <button
@@ -693,7 +724,10 @@ End: DD-MM-YYYY HH:mm`}</pre>
 
       <button
         type="button"
-        onClick={() => setSubmitted(true)}
+        onClick={() => {
+          setSubmitted(true);
+          setWorkflowStep("review");
+        }}
         className="mt-4 rounded-lg bg-white px-4 py-2 text-sm font-medium text-black"
       >
         Check Que
@@ -726,6 +760,23 @@ End: DD-MM-YYYY HH:mm`}</pre>
               <p className="text-2xl font-bold text-red-300">{conflictCount}</p>
               <p className="text-sm text-zinc-400">Conflicts</p>
             </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setWorkflowStep("visualize")}
+              className="rounded-lg border border-sky-800 bg-sky-950 px-3 py-2 text-xs text-sky-100"
+            >
+              Go to visualize
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setWorkflowStep("results")}
+              className="rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs text-zinc-300"
+            >
+              Go to conflict results
+            </button>
           </div>
           {result?.checkedEvents.length > 0 && (
             <div className="mt-4 rounded-lg border border-zinc-800 bg-zinc-950 p-4">
