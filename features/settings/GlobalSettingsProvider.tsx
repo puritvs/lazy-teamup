@@ -11,7 +11,7 @@ import {
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { TravelBufferMap } from "@/features/travel-buffer/types";
 import { TeamupEvent, GlobalSettingsContextValue } from "./types";
-
+import { CalendarVisualItem } from "@/features/calendar-view/types";
 const DEFAULT_TRAVEL_BUFFER_MINUTES = 30;
 
 const GlobalSettingsContext = createContext<GlobalSettingsContextValue | null>(
@@ -20,7 +20,25 @@ const GlobalSettingsContext = createContext<GlobalSettingsContextValue | null>(
 
 export function GlobalSettingsProvider({ children }: { children: ReactNode }) {
   const [events, setEvents] = useState<TeamupEvent[]>([]);
+  const [availableQueCalendarItems, setAvailableQueCalendarItems] = useState<
+    CalendarVisualItem[]
+  >([]);
 
+  const [queCheckCalendarItems, setQueCheckCalendarItems] = useState<
+    CalendarVisualItem[]
+  >([]);
+
+  const clearCalendarLayer = useCallback(
+    (layer: "availableQue" | "queCheck") => {
+      if (layer === "availableQue") {
+        setAvailableQueCalendarItems([]);
+        return;
+      }
+
+      setQueCheckCalendarItems([]);
+    },
+    [],
+  );
   const [excludedTitles, setExcludedTitles] = useLocalStorage<string[]>(
     "lazy-teamup-excluded-titles",
     [],
@@ -82,6 +100,13 @@ export function GlobalSettingsProvider({ children }: { children: ReactNode }) {
       setTravelBuffers,
       updateTravelBuffer,
       ensureTravelBuffersForLocations,
+      calendarLayers: {
+        availableQue: availableQueCalendarItems,
+        queCheck: queCheckCalendarItems,
+      },
+      setAvailableQueCalendarItems,
+      setQueCheckCalendarItems,
+      clearCalendarLayer,
     }),
     [
       events,
@@ -92,6 +117,9 @@ export function GlobalSettingsProvider({ children }: { children: ReactNode }) {
       setTravelBuffers,
       updateTravelBuffer,
       ensureTravelBuffersForLocations,
+      availableQueCalendarItems,
+      queCheckCalendarItems,
+      clearCalendarLayer,
     ],
   );
 

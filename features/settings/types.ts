@@ -1,6 +1,6 @@
 import { Dispatch, SetStateAction } from "react";
 import { TravelBufferMap } from "@/features/travel-buffer/types";
-
+import { CalendarVisualItem } from "@/features/calendar-view/types";
 export type TeamupEvent = {
   id: string;
   title: string;
@@ -27,4 +27,12 @@ export type GlobalSettingsContextValue = {
   ) => void;
 
   ensureTravelBuffersForLocations: (locations: string[]) => void;
+  calendarLayers: {
+    availableQue: CalendarVisualItem[];
+    queCheck: CalendarVisualItem[];
+  };
+
+  setAvailableQueCalendarItems: (items: CalendarVisualItem[]) => void;
+  setQueCheckCalendarItems: (items: CalendarVisualItem[]) => void;
+  clearCalendarLayer: (layer: "availableQue" | "queCheck") => void;
 };

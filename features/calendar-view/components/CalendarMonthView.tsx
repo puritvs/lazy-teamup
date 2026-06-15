@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import dayjs from "dayjs";
 import { DateDisplayFormat, formatEventDateRange } from "@/utils/date";
+import { CalendarVisualItem } from "../types";
 
 type TeamupEvent = {
   id: string;
@@ -13,6 +14,7 @@ type TeamupEvent = {
 
 type Props = {
   events: TeamupEvent[];
+  visualItems?: CalendarVisualItem[];
   year: number;
   month: number;
   dateFormat: DateDisplayFormat;
@@ -25,14 +27,13 @@ function getMonthGrid(year: number, month: number) {
   const startOffset = firstDay.day() === 0 ? 6 : firstDay.day() - 1;
   const gridStart = firstDay.subtract(startOffset, "day");
 
-  return Array.from({ length: 42 }, (_, index) => {
-    return gridStart.add(index, "day");
-  });
+  return Array.from({ length: 42 }, (_, index) => gridStart.add(index, "day"));
 }
 
-function getEventDateKeys(event: TeamupEvent) {
-  const start = dayjs(event.start_dt);
-  const end = dayjs(event.end_dt);
+function getItemDateKeys(item: { start_dt: string; end_dt: string }) {
+  const start = dayjs(item.start_dt);
+  const end = dayjs(item.end_dt);
+
   const endForDisplay =
     end.hour() === 0 && end.minute() === 0 ? end.subtract(1, "minute") : end;
 
@@ -50,26 +51,61 @@ function getEventDateKeys(event: TeamupEvent) {
   return keys;
 }
 
-export function CalendarMonthView({ events, year, month, dateFormat }: Props) {
+function getItemStyle(type: CalendarVisualItem["type"]) {
+  if (type === "conflict") return "border-red-800 bg-red-950/70 text-red-100";
+  if (type === "available-que")
+    return "border-emerald-800 bg-emerald-950/70 text-emerald-100";
+  if (type === "que-check") return "border-sky-800 bg-sky-950/70 text-sky-100";
+
+  return "border-zinc-700 bg-zinc-800 text-zinc-100";
+}
+
+function getItemPrefix(type: CalendarVisualItem["type"]) {
+  if (type === "conflict") return "⚠";
+  if (type === "available-que") return "Free";
+  if (type === "que-check") return "Que";
+  return "";
+}
+
+export function CalendarMonthView({
+  events,
+  visualItems = [],
+  year,
+  month,
+  dateFormat,
+}: Props) {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
   const days = useMemo(() => getMonthGrid(year, month), [year, month]);
 
-  const eventsByDate = useMemo(() => {
-    const map = new Map<string, TeamupEvent[]>();
+  const allItems = useMemo<CalendarVisualItem[]>(() => {
+    const eventItems: CalendarVisualItem[] = events.map((event) => ({
+      id: `event-${event.id}`,
+      sourceId: event.id,
+      type: "event",
+      title: event.title,
+      start_dt: event.start_dt,
+      end_dt: event.end_dt,
+    }));
 
-    for (const event of events) {
-      for (const key of getEventDateKeys(event)) {
+    return [...eventItems, ...visualItems];
+  }, [events, visualItems]);
+
+  const itemsByDate = useMemo(() => {
+    const map = new Map<string, CalendarVisualItem[]>();
+
+    for (const item of allItems) {
+      for (const key of getItemDateKeys(item)) {
         const current = map.get(key) ?? [];
-        current.push(event);
+        current.push(item);
         map.set(key, current);
       }
     }
 
-    for (const [key, dayEvents] of map) {
+    for (const [key, dayItems] of map) {
       map.set(
         key,
-        [...dayEvents].sort(
+        [...dayItems].sort(
           (a, b) =>
             new Date(a.start_dt).getTime() - new Date(b.start_dt).getTime(),
         ),
@@ -77,10 +113,10 @@ export function CalendarMonthView({ events, year, month, dateFormat }: Props) {
     }
 
     return map;
-  }, [events]);
+  }, [allItems]);
 
-  const selectedEvents = selectedDate
-    ? (eventsByDate.get(selectedDate) ?? [])
+  const selectedItems = selectedDate
+    ? (itemsByDate.get(selectedDate) ?? [])
     : [];
 
   return (
@@ -88,7 +124,7 @@ export function CalendarMonthView({ events, year, month, dateFormat }: Props) {
       <div className="mb-4">
         <h2 className="text-lg font-bold text-zinc-100">Calendar</h2>
         <p className="text-sm text-zinc-400">
-          Month view using currently visible filtered events.
+          Month view using current filters and enabled visualization layers.
         </p>
       </div>
 
@@ -104,7 +140,7 @@ export function CalendarMonthView({ events, year, month, dateFormat }: Props) {
 
         {days.map((day) => {
           const dateKey = day.format("YYYY-MM-DD");
-          const dayEvents = eventsByDate.get(dateKey) ?? [];
+          const dayItems = itemsByDate.get(dateKey) ?? [];
           const isCurrentMonth = day.month() + 1 === month;
           const isSelected = selectedDate === dateKey;
 
@@ -124,27 +160,31 @@ export function CalendarMonthView({ events, year, month, dateFormat }: Props) {
                   {day.date()}
                 </span>
 
-                {dayEvents.length > 0 && (
+                {dayItems.length > 0 && (
                   <span className="rounded-full bg-zinc-800 px-1.5 py-0.5 text-[10px] text-zinc-300">
-                    {dayEvents.length}
+                    {dayItems.length}
                   </span>
                 )}
               </div>
 
               <div className="space-y-1">
-                {dayEvents.slice(0, 3).map((event) => (
+                {dayItems.slice(0, 4).map((item) => (
                   <div
-                    key={`${dateKey}-${event.id}`}
-                    className="truncate rounded bg-zinc-800 px-2 py-1 text-[11px] text-zinc-100"
-                    title={event.title}
+                    key={`${dateKey}-${item.id}`}
+                    className={[
+                      "truncate rounded border px-2 py-1 text-[11px]",
+                      getItemStyle(item.type),
+                    ].join(" ")}
+                    title={item.title}
                   >
-                    {dayjs(event.start_dt).format("HH:mm")} {event.title}
+                    {getItemPrefix(item.type)}{" "}
+                    {dayjs(item.start_dt).format("HH:mm")} {item.title}
                   </div>
                 ))}
 
-                {dayEvents.length > 3 && (
+                {dayItems.length > 4 && (
                   <div className="text-[11px] text-zinc-500">
-                    +{dayEvents.length - 3} more
+                    +{dayItems.length - 4} more
                   </div>
                 )}
               </div>
@@ -169,23 +209,39 @@ export function CalendarMonthView({ events, year, month, dateFormat }: Props) {
             </button>
           </div>
 
-          {selectedEvents.length === 0 ? (
-            <p className="text-sm text-zinc-500">No events on this day.</p>
+          {selectedItems.length === 0 ? (
+            <p className="text-sm text-zinc-500">No items on this day.</p>
           ) : (
             <div className="space-y-2">
-              {selectedEvents.map((event) => (
+              {selectedItems.map((item) => (
                 <div
-                  key={event.id}
-                  className="rounded-lg border border-zinc-800 bg-black/40 p-3"
+                  key={item.id}
+                  className={[
+                    "rounded-lg border p-3",
+                    getItemStyle(item.type),
+                  ].join(" ")}
                 >
-                  <p className="font-medium text-zinc-100">{event.title}</p>
-                  <p className="mt-1 text-sm text-zinc-400">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="rounded bg-black/30 px-2 py-0.5 text-xs uppercase">
+                      {item.type}
+                    </span>
+
+                    <p className="font-medium">{item.title}</p>
+                  </div>
+
+                  <p className="mt-1 text-sm opacity-80">
                     {formatEventDateRange(
-                      event.start_dt,
-                      event.end_dt,
+                      item.start_dt,
+                      item.end_dt,
                       dateFormat,
                     )}
                   </p>
+
+                  {item.description && (
+                    <p className="mt-2 text-xs opacity-80">
+                      {item.description}
+                    </p>
+                  )}
                 </div>
               ))}
             </div>

@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { MonthlySummary } from "@/features/calendar-summary/components/MonthlySummary";
 import { OverlapSummary } from "@/features/calendar-overlaps/components/OverlapSummary";
 import { AvailableQueFinder } from "@/features/available-que/components/AvailableQueFinder";
 import { DateDisplayFormat } from "@/utils/date";
 import { useGlobalSettings } from "@/features/settings/GlobalSettingsProvider";
 import { CalendarMonthView } from "@/features/calendar-view/components/CalendarMonthView";
+import { CalendarVisualItem } from "@/features/calendar-view/types";
+import { findOverlappingEvents } from "@/features/calendar-overlaps/services/findOverlappingEvents";
 type TeamupEvent = {
   id: string;
   title: string;
@@ -34,8 +36,12 @@ export function CalendarDashboard() {
   const [year, setYear] = useState(2026);
   const [dateFormat, setDateFormat] =
     useState<DateDisplayFormat>("day-month-year");
-  const { setEvents, filteredEvents } = useGlobalSettings();
-
+  const { setEvents, filteredEvents, calendarLayers } = useGlobalSettings();
+  const [showCalendarEvents, setShowCalendarEvents] = useState(true);
+  const [showCalendarConflicts, setShowCalendarConflicts] = useState(false);
+  const [showCalendarAvailableQue, setShowCalendarAvailableQue] =
+    useState(false);
+  const [showCalendarQueCheck, setShowCalendarQueCheck] = useState(false);
   const [rawEvents, setRawEvents] = useState<TeamupEvent[]>([]);
 
   const [loadingEvents, setLoadingEvents] = useState(false);
@@ -57,7 +63,45 @@ export function CalendarDashboard() {
       setLoadingEvents(false);
     }
   }
+  const conflictCalendarItems = useMemo<CalendarVisualItem[]>(() => {
+    const overlapGroups = findOverlappingEvents(filteredEvents);
 
+    return overlapGroups.map((group, index) => {
+      const sortedEvents = [...group.events].sort(
+        (a, b) =>
+          new Date(a.start_dt).getTime() - new Date(b.start_dt).getTime(),
+      );
+
+      const start = sortedEvents[0];
+      const end = [...sortedEvents].sort(
+        (a, b) => new Date(b.end_dt).getTime() - new Date(a.end_dt).getTime(),
+      )[0];
+
+      return {
+        id: `conflict-${index}-${start.id}`,
+        type: "conflict",
+        title: `${group.events.length} overlapping events`,
+        start_dt: start.start_dt,
+        end_dt: end.end_dt,
+        description: group.events.map((event) => event.title).join(" / "),
+      };
+    });
+  }, [filteredEvents]);
+
+  const calendarVisualItems = useMemo<CalendarVisualItem[]>(() => {
+    return [
+      ...(showCalendarConflicts ? conflictCalendarItems : []),
+      ...(showCalendarAvailableQue ? calendarLayers.availableQue : []),
+      ...(showCalendarQueCheck ? calendarLayers.queCheck : []),
+    ];
+  }, [
+    showCalendarConflicts,
+    conflictCalendarItems,
+    showCalendarAvailableQue,
+    calendarLayers.availableQue,
+    showCalendarQueCheck,
+    calendarLayers.queCheck,
+  ]);
   useEffect(() => {
     loadEvents();
   }, [year, month]);
@@ -158,9 +202,57 @@ export function CalendarDashboard() {
         />
         <AvailableQueFinder events={filteredEvents} dateFormat={dateFormat} />
       </div>
+      <section className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5">
+        <h2 className="text-lg font-bold text-zinc-100">Calendar Layers</h2>
+
+        <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+          <label className="flex items-center gap-2 rounded-lg border border-zinc-800 bg-zinc-950 p-3 text-sm text-zinc-300">
+            <input
+              type="checkbox"
+              checked={showCalendarEvents}
+              onChange={(event) => setShowCalendarEvents(event.target.checked)}
+            />
+            Events
+          </label>
+
+          <label className="flex items-center gap-2 rounded-lg border border-zinc-800 bg-zinc-950 p-3 text-sm text-zinc-300">
+            <input
+              type="checkbox"
+              checked={showCalendarConflicts}
+              onChange={(event) =>
+                setShowCalendarConflicts(event.target.checked)
+              }
+            />
+            Conflicts ({conflictCalendarItems.length})
+          </label>
+
+          <label className="flex items-center gap-2 rounded-lg border border-zinc-800 bg-zinc-950 p-3 text-sm text-zinc-300">
+            <input
+              type="checkbox"
+              checked={showCalendarAvailableQue}
+              onChange={(event) =>
+                setShowCalendarAvailableQue(event.target.checked)
+              }
+            />
+            Available Que ({calendarLayers.availableQue.length})
+          </label>
+
+          <label className="flex items-center gap-2 rounded-lg border border-zinc-800 bg-zinc-950 p-3 text-sm text-zinc-300">
+            <input
+              type="checkbox"
+              checked={showCalendarQueCheck}
+              onChange={(event) =>
+                setShowCalendarQueCheck(event.target.checked)
+              }
+            />
+            Que Check ({calendarLayers.queCheck.length})
+          </label>
+        </div>
+      </section>
       <section className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5 sm:p-6">
         <CalendarMonthView
-          events={filteredEvents}
+          events={showCalendarEvents ? filteredEvents : []}
+          visualItems={calendarVisualItems}
           year={year}
           month={month}
           dateFormat={dateFormat}

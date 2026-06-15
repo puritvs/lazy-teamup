@@ -204,7 +204,11 @@ export function AvailableQueFinder({ events, dateFormat }: Props) {
     return getUniqueNonDefaultLocations(events);
   }, [events]);
   const minDurationMinutes = minDurationHours * 60 + minDurationMins;
-  const { ensureTravelBuffersForLocations } = useGlobalSettings();
+  const {
+    ensureTravelBuffersForLocations,
+    setAvailableQueCalendarItems,
+    clearCalendarLayer,
+  } = useGlobalSettings();
   const error = useMemo(() => {
     if (startDate > endDate) {
       return "Start date cannot be after end date.";
@@ -258,7 +262,27 @@ export function AvailableQueFinder({ events, dateFormat }: Props) {
       }))
       .filter((day) => day.slots.length > 0);
   }, [availableDays, showOnlyTravelSlots, events]);
-
+  function availableQueToCalendarItems(
+    availableDays: {
+      date: string;
+      slots: {
+        start: string;
+        end: string;
+        durationMinutes: number;
+      }[];
+    }[],
+  ) {
+    return availableDays.flatMap((day) =>
+      day.slots.map((slot) => ({
+        id: `available-que-${day.date}-${slot.start}-${slot.end}`,
+        type: "available-que" as const,
+        title: `Available Que (${formatDuration(slot.durationMinutes)})`,
+        start_dt: `${day.date}T${slot.start}:00`,
+        end_dt: `${day.date}T${slot.end}:00`,
+        description: `${slot.start} - ${slot.end}`,
+      })),
+    );
+  }
   const totalSlots = displayedAvailableDays.reduce(
     (sum, day) => sum + day.slots.length,
     0,
@@ -474,6 +498,26 @@ export function AvailableQueFinder({ events, dateFormat }: Props) {
             </div>
 
             <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setAvailableQueCalendarItems(
+                    availableQueToCalendarItems(displayedAvailableDays),
+                  );
+                }}
+                disabled={totalSlots === 0}
+                className="rounded-lg border border-emerald-800 bg-emerald-950 px-3 py-1.5 text-xs text-emerald-100 transition hover:bg-emerald-900 disabled:opacity-50"
+              >
+                Show on Calendar
+              </button>
+
+              <button
+                type="button"
+                onClick={() => clearCalendarLayer("availableQue")}
+                className="rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-1.5 text-xs text-zinc-300 transition hover:bg-zinc-900 hover:text-white"
+              >
+                Clear Calendar
+              </button>
               <button
                 type="button"
                 onClick={() => setShowCopyableText((current) => !current)}

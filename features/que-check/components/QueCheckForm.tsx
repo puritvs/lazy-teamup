@@ -14,6 +14,7 @@ import {
   getUniqueNonDefaultLocations,
 } from "@/features/travel-buffer/utils";
 import { TravelBufferMap } from "@/features/travel-buffer/types";
+import { CalendarVisualItem } from "@/features/calendar-view/types";
 
 function getTravelWarnings(
   parsed: {
@@ -285,8 +286,33 @@ export function QueCheckForm({ events, dateFormat }: Props) {
 
   const [manualTitle, setManualTitle] = useState("");
   const [manualLocation, setManualLocation] = useState("");
-  const { travelBuffers, ensureTravelBuffersForLocations } =
-    useGlobalSettings();
+  const {
+    travelBuffers,
+    ensureTravelBuffersForLocations,
+    setQueCheckCalendarItems,
+    clearCalendarLayer,
+  } = useGlobalSettings();
+  const [selectedCalendarQueIds, setSelectedCalendarQueIds] = useState<
+    string[]
+  >([]);
+  function parsedQueToCalendarItem(event: {
+    id: string;
+    title: string;
+    date: string;
+    endDate: string;
+    startTime: string;
+    endTime: string;
+    crossesMidnight: boolean;
+  }): CalendarVisualItem {
+    return {
+      id: `que-check-${event.id}`,
+      type: "que-check",
+      title: event.title,
+      start_dt: `${event.date}T${event.startTime}:00`,
+      end_dt: `${event.endDate}T${event.endTime}:00`,
+      description: event.crossesMidnight ? "Crosses midnight" : undefined,
+    };
+  }
 
   const detectedLocations = useMemo(() => {
     return getUniqueNonDefaultLocations(events);
@@ -359,6 +385,14 @@ export function QueCheckForm({ events, dateFormat }: Props) {
       ),
     );
   }
+  useEffect(() => {
+    if (!result?.checkedEvents.length) return;
+
+    setSelectedCalendarQueIds((current) => {
+      if (current.length > 0) return current;
+      return result.checkedEvents.map((item) => item.parsed.id);
+    });
+  }, [result]);
   useEffect(() => {
     if (inputMode !== "manual") {
       return;
@@ -693,7 +727,77 @@ End: DD-MM-YYYY HH:mm`}</pre>
               <p className="text-sm text-zinc-400">Conflicts</p>
             </div>
           </div>
+          {result?.checkedEvents.length > 0 && (
+            <div className="mt-4 rounded-lg border border-zinc-800 bg-zinc-950 p-4">
+              <p className="font-semibold text-zinc-100">Visualize Que Check</p>
 
+              <p className="mt-1 text-xs text-zinc-500">
+                Select proposed Que items to display on the calendar.
+              </p>
+
+              <div className="mt-3 space-y-2">
+                {result.checkedEvents.map(({ parsed }) => (
+                  <label
+                    key={parsed.id}
+                    className="flex items-start gap-3 rounded-lg border border-zinc-800 bg-black/40 p-3"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedCalendarQueIds.includes(parsed.id)}
+                      onChange={(inputEvent) => {
+                        setSelectedCalendarQueIds((current) => {
+                          if (inputEvent.target.checked) {
+                            return [...new Set([...current, parsed.id])];
+                          }
+
+                          return current.filter((id) => id !== parsed.id);
+                        });
+                      }}
+                      className="mt-1"
+                    />
+
+                    <span>
+                      <span className="block text-sm text-zinc-100">
+                        {parsed.title}
+                      </span>
+                      <span className="block text-xs text-zinc-500">
+                        {parsed.date} {parsed.startTime} - {parsed.endDate}{" "}
+                        {parsed.endTime}
+                      </span>
+                    </span>
+                  </label>
+                ))}
+              </div>
+
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const selectedItems = result.checkedEvents
+                      .map((item) => item.parsed)
+                      .filter((event) =>
+                        selectedCalendarQueIds.includes(event.id),
+                      )
+                      .map(parsedQueToCalendarItem);
+
+                    setQueCheckCalendarItems(selectedItems);
+                  }}
+                  disabled={selectedCalendarQueIds.length === 0}
+                  className="rounded-lg border border-sky-800 bg-sky-950 px-3 py-2 text-xs text-sky-100 transition hover:bg-sky-900 disabled:opacity-50"
+                >
+                  Show Selected on Calendar
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => clearCalendarLayer("queCheck")}
+                  className="rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs text-zinc-300 transition hover:bg-zinc-900 hover:text-white"
+                >
+                  Clear Calendar
+                </button>
+              </div>
+            </div>
+          )}
           {result.checkedEvents.map(
             ({ parsed, conflictGroup, travelWarnings }) => (
               <div
