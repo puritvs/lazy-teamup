@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { EventList } from "@/features/calendar/components/EventList";
 import { MonthlySummary } from "@/features/calendar-summary/components/MonthlySummary";
 import { OverlapSummary } from "@/features/calendar-overlaps/components/OverlapSummary";
 import { AvailableQueFinder } from "@/features/available-que/components/AvailableQueFinder";
@@ -42,8 +41,6 @@ export function CalendarDashboard() {
   const [loadingEvents, setLoadingEvents] = useState(false);
 
   const [showEventSummary, setShowEventSummary] = useState(false);
-  const [showEventList, setShowEventList] = useState(false);
-  const [calendarName, setCalendarName] = useState("Teamup Calendar");
   async function loadEvents() {
     setLoadingEvents(true);
 
@@ -65,20 +62,6 @@ export function CalendarDashboard() {
     loadEvents();
   }, [year, month]);
 
-  useEffect(() => {
-    async function loadCalendarName() {
-      try {
-        const res = await fetch("/api/teamup/calendar");
-        const data = await res.json();
-
-        setCalendarName(data.name ?? "Teamup Calendar");
-      } catch {
-        setCalendarName("Teamup Calendar");
-      }
-    }
-
-    loadCalendarName();
-  }, []);
   return (
     <div className="space-y-6 sm:space-y-8">
       <section className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5 sm:p-6">
