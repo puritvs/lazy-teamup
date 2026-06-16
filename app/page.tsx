@@ -1,7 +1,7 @@
 import { CalendarDashboard } from "@/features/calendar/components/CalendarDashboard";
 export default function Home() {
   return (
-    <main className="min-h-screen bg-black px-3 py-4 text-zinc-100 sm:px-6 sm:py-8">
+    <main className="min-h-screen bg-black px-3 pb-24 pt-4 text-zinc-100 sm:px-6 sm:py-8">
       <section className="mx-auto w-full max-w-[1600px] rounded-xl border border-zinc-800 bg-zinc-950 p-4 shadow-2xl sm:rounded-2xl sm:p-8">
         <header className="mb-6 flex flex-col gap-4 border-b border-zinc-800 pb-6 sm:mb-8 sm:flex-row sm:items-center sm:justify-between">
           <div>
