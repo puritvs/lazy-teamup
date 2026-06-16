@@ -106,13 +106,11 @@ type Props = {
   events: QueCheckEvent[];
   dateFormat: DateDisplayFormat;
 };
-type QueCheckStep = "input" | "review" | "visualize" | "results";
+type QueCheckStep = "input" | "result";
 
 const QUE_CHECK_STEPS: { value: QueCheckStep; label: string }[] = [
   { value: "input", label: "Input" },
-  { value: "review", label: "Review" },
-  { value: "visualize", label: "Visualize" },
-  { value: "results", label: "Results" },
+  { value: "result", label: "Result" },
 ];
 const sampleMessage = `Title: BUS Rehearsal
 Location: Sunray
@@ -415,9 +413,7 @@ export function QueCheckForm({ events, dateFormat }: Props) {
   const conflictCount =
     result?.checkedEvents.filter((item) => item.conflictGroup).length ?? 0;
   const showInputStep = workflowStep === "input";
-  const showReviewStep = workflowStep === "review";
-  const showVisualizeStep = workflowStep === "visualize";
-  const showResultsStep = workflowStep === "results";
+  const showResultStep = workflowStep === "result";
   return (
     <>
       <section className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5 sm:p-6">
@@ -427,7 +423,7 @@ export function QueCheckForm({ events, dateFormat }: Props) {
             Paste normalized queue text to check for overlapping events.
           </p>
         </div>
-        <div className="mb-4 grid gap-2 sm:grid-cols-4">
+        <div className="mb-4 grid gap-2 sm:grid-cols-2">
           {QUE_CHECK_STEPS.map((step, index) => {
             const isActive = workflowStep === step.value;
 
@@ -747,7 +743,7 @@ End: DD-MM-YYYY HH:mm`}</pre>
               type="button"
               onClick={() => {
                 setSubmitted(true);
-                setWorkflowStep("review");
+                setWorkflowStep("result");
               }}
               className="mt-4 rounded-lg bg-white px-4 py-2 text-sm font-medium text-black"
             >
@@ -761,198 +757,168 @@ End: DD-MM-YYYY HH:mm`}</pre>
           </p>
         )}
 
-        {result &&
-          !result.error &&
-          (showReviewStep || showVisualizeStep || showResultsStep) && (
-            <div className="mt-5 space-y-4">
-              {showReviewStep && (
-                <>
-                  <div className="grid gap-3 sm:grid-cols-3">
-                    <div className="rounded-lg border border-zinc-800 bg-zinc-950 p-4">
-                      <p className="text-2xl font-bold text-zinc-100">
-                        {result.checkedEvents.length}
-                      </p>
-                      <p className="text-sm text-zinc-400">Parsed events</p>
-                    </div>
+        {result && !result.error && showResultStep && (
+          <div className="mt-5 space-y-4">
+            <div className="flex flex-wrap gap-2 rounded-lg border border-zinc-800 bg-zinc-950 p-3 text-xs">
+              <span className="rounded-full bg-zinc-800 px-3 py-1 text-zinc-200">
+                Parsed {result.checkedEvents.length}
+              </span>
+              <span className="rounded-full bg-emerald-950 px-3 py-1 text-emerald-200">
+                Available {validCount}
+              </span>
+              <span className="rounded-full bg-red-950 px-3 py-1 text-red-200">
+                Conflicts {conflictCount}
+              </span>
+            </div>
 
-                    <div className="rounded-lg border border-emerald-900 bg-emerald-950/20 p-4">
-                      <p className="text-2xl font-bold text-emerald-300">
-                        {validCount}
-                      </p>
-                      <p className="text-sm text-zinc-400">No conflict</p>
-                    </div>
+            <div className="space-y-3">
+              {result.checkedEvents.map(
+                ({ parsed, conflictGroup, travelWarnings }) => (
+                  <div
+                    key={parsed.id}
+                    className="rounded-xl border border-zinc-800 bg-zinc-950 p-4"
+                  >
+                    <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <p className="font-semibold text-zinc-100">
+                          {parsed.title}
+                        </p>
+                        <p className="text-sm text-zinc-400">
+                          {formatDate(parsed.date, dateFormat)}{" "}
+                          {parsed.startTime} -{" "}
+                          {parsed.crossesMidnight
+                            ? `${formatDate(parsed.endDate, dateFormat)} ${parsed.endTime}`
+                            : parsed.endTime}
+                        </p>
 
-                    <div className="rounded-lg border border-red-900 bg-red-950/20 p-4">
-                      <p className="text-2xl font-bold text-red-300">
-                        {conflictCount}
-                      </p>
-                      <p className="text-sm text-zinc-400">Conflicts</p>
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setWorkflowStep("visualize")}
-                      className="rounded-lg border border-sky-800 bg-sky-950 px-3 py-2 text-xs text-sky-100"
-                    >
-                      Go to visualize
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setWorkflowStep("results")}
-                      className="rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs text-zinc-300"
-                    >
-                      Go to conflict results
-                    </button>
-                  </div>
-                </>
-              )}
-              {showVisualizeStep && result.checkedEvents.length > 0 && (
-                <div className="mt-4 rounded-lg border border-zinc-800 bg-zinc-950 p-4">
-                  <p className="font-semibold text-zinc-100">
-                    Visualize Que Check
-                  </p>
-
-                  <p className="mt-1 text-xs text-zinc-500">
-                    Select proposed Que items to display on the calendar.
-                  </p>
-
-                  <div className="mt-3 space-y-2">
-                    {result.checkedEvents.map(({ parsed }) => (
-                      <label
-                        key={parsed.id}
-                        className="flex items-start gap-3 rounded-lg border border-zinc-800 bg-black/40 p-3"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={selectedCalendarQueIds.includes(parsed.id)}
-                          onChange={(inputEvent) => {
-                            setSelectedCalendarQueIds((current) => {
-                              if (inputEvent.target.checked) {
-                                return [...new Set([...current, parsed.id])];
-                              }
-
-                              return current.filter((id) => id !== parsed.id);
-                            });
-                          }}
-                          className="mt-1"
-                        />
-
-                        <span>
-                          <span className="block text-sm text-zinc-100">
-                            {parsed.title}
-                          </span>
-                          <span className="block text-xs text-zinc-500">
-                            {parsed.date} {parsed.startTime} - {parsed.endDate}{" "}
-                            {parsed.endTime}
-                          </span>
-                        </span>
-                      </label>
-                    ))}
-                  </div>
-
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const selectedItems = result.checkedEvents
-                          .map((item) => item.parsed)
-                          .filter((event) =>
-                            selectedCalendarQueIds.includes(event.id),
-                          )
-                          .map(parsedQueToCalendarItem);
-
-                        setQueCheckCalendarItems(selectedItems);
-                        setWorkflowStep("results");
-                      }}
-                      disabled={selectedCalendarQueIds.length === 0}
-                      className="rounded-lg border border-sky-800 bg-sky-950 px-3 py-2 text-xs text-sky-100 transition hover:bg-sky-900 disabled:opacity-50"
-                    >
-                      Show Selected on Calendar
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => clearCalendarLayer("queCheck")}
-                      className="rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs text-zinc-300 transition hover:bg-zinc-900 hover:text-white"
-                    >
-                      Clear Calendar
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {showResultsStep &&
-                result.checkedEvents.map(
-                  ({ parsed, conflictGroup, travelWarnings }) => (
-                    <div
-                      key={parsed.id}
-                      className="rounded-xl border border-zinc-800 bg-zinc-950 p-4"
-                    >
-                      <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                        <div>
-                          <p className="font-semibold text-zinc-100">
-                            {parsed.title}
+                        {parsed.crossesMidnight && (
+                          <p className="mt-1 text-xs text-amber-300">
+                            Crosses midnight
                           </p>
-                          <p className="text-sm text-zinc-400">
-                            {formatDate(parsed.date, dateFormat)}{" "}
-                            {parsed.startTime} -{" "}
-                            {parsed.crossesMidnight
-                              ? `${formatDate(parsed.endDate, dateFormat)} ${parsed.endTime}`
-                              : parsed.endTime}
-                          </p>
-                          {parsed.crossesMidnight && (
-                            <p className="mt-1 text-xs text-amber-300">
-                              Crosses midnight
-                            </p>
-                          )}
-                        </div>
-
-                        <span
-                          className={[
-                            "w-fit rounded-full px-3 py-1 text-xs",
-                            conflictGroup
-                              ? "bg-red-950 text-red-200"
-                              : "bg-emerald-950 text-emerald-200",
-                          ].join(" ")}
-                        >
-                          {conflictGroup ? "Conflict" : "Available"}
-                        </span>
+                        )}
                       </div>
 
-                      {conflictGroup ? (
-                        <OverlapConflictCard
-                          group={conflictGroup}
-                          dateFormat={dateFormat}
-                        />
-                      ) : (
-                        <p className="rounded-lg border border-emerald-900 bg-emerald-950/20 p-3 text-sm text-emerald-300">
-                          No overlapping events found.
-                        </p>
-                      )}
-                      {travelWarnings.length > 0 && (
-                        <div className="mt-3 rounded-lg border border-amber-900 bg-amber-950/30 p-3 text-sm text-amber-200">
-                          <p className="mb-2 font-semibold">Travel warning</p>
-
-                          <div className="space-y-1">
-                            {travelWarnings.map((warning, index) => (
-                              <p key={index}>
-                                {warning.type === "from"
-                                  ? `[travel from: ${warning.location}]`
-                                  : `[next location: ${warning.location}]`}{" "}
-                                Need {warning.requiredMinutes} min, only{" "}
-                                {warning.actualMinutes} min available.
-                              </p>
-                            ))}
-                          </div>
-                        </div>
-                      )}
+                      <span
+                        className={[
+                          "w-fit rounded-full px-3 py-1 text-xs",
+                          conflictGroup
+                            ? "bg-red-950 text-red-200"
+                            : "bg-emerald-950 text-emerald-200",
+                        ].join(" ")}
+                      >
+                        {conflictGroup ? "Conflict" : "Available"}
+                      </span>
                     </div>
-                  ),
-                )}
+
+                    {conflictGroup ? (
+                      <OverlapConflictCard
+                        group={conflictGroup}
+                        dateFormat={dateFormat}
+                      />
+                    ) : (
+                      <p className="rounded-lg border border-emerald-900 bg-emerald-950/20 p-3 text-sm text-emerald-300">
+                        No overlapping events found.
+                      </p>
+                    )}
+
+                    {travelWarnings.length > 0 && (
+                      <div className="mt-3 rounded-lg border border-amber-900 bg-amber-950/30 p-3 text-sm text-amber-200">
+                        <p className="mb-2 font-semibold">Travel warning</p>
+
+                        <div className="space-y-1">
+                          {travelWarnings.map((warning, index) => (
+                            <p key={index}>
+                              {warning.type === "from"
+                                ? `[travel from: ${warning.location}]`
+                                : `[next location: ${warning.location}]`}{" "}
+                              Need {warning.requiredMinutes} min, only{" "}
+                              {warning.actualMinutes} min available.
+                            </p>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ),
+              )}
             </div>
-          )}
+
+            {result.checkedEvents.length > 0 && (
+              <details className="rounded-lg border border-zinc-800 bg-zinc-950 p-4">
+                <summary className="cursor-pointer text-sm font-semibold text-zinc-200">
+                  Visualize on calendar
+                </summary>
+
+                <p className="mt-2 text-xs text-zinc-500">
+                  Select proposed Que items to display on the calendar.
+                </p>
+
+                <div className="mt-3 space-y-2">
+                  {result.checkedEvents.map(({ parsed }) => (
+                    <label
+                      key={parsed.id}
+                      className="flex items-start gap-3 rounded-lg border border-zinc-800 bg-black/40 p-3"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedCalendarQueIds.includes(parsed.id)}
+                        onChange={(inputEvent) => {
+                          setSelectedCalendarQueIds((current) => {
+                            if (inputEvent.target.checked) {
+                              return [...new Set([...current, parsed.id])];
+                            }
+
+                            return current.filter((id) => id !== parsed.id);
+                          });
+                        }}
+                        className="mt-1"
+                      />
+
+                      <span>
+                        <span className="block text-sm text-zinc-100">
+                          {parsed.title}
+                        </span>
+                        <span className="block text-xs text-zinc-500">
+                          {parsed.date} {parsed.startTime} - {parsed.endDate}{" "}
+                          {parsed.endTime}
+                        </span>
+                      </span>
+                    </label>
+                  ))}
+                </div>
+
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const selectedItems = result.checkedEvents
+                        .map((item) => item.parsed)
+                        .filter((event) =>
+                          selectedCalendarQueIds.includes(event.id),
+                        )
+                        .map(parsedQueToCalendarItem);
+
+                      setQueCheckCalendarItems(selectedItems);
+                      setWorkflowStep("result");
+                    }}
+                    disabled={selectedCalendarQueIds.length === 0}
+                    className="rounded-lg border border-sky-800 bg-sky-950 px-3 py-2 text-xs text-sky-100 transition hover:bg-sky-900 disabled:opacity-50"
+                  >
+                    Show Selected on Calendar
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => clearCalendarLayer("queCheck")}
+                    className="rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs text-zinc-300 transition hover:bg-zinc-900 hover:text-white"
+                  >
+                    Clear Calendar
+                  </button>
+                </div>
+              </details>
+            )}
+          </div>
+        )}
       </section>
     </>
   );
