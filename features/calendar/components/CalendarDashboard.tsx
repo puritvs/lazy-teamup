@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { MonthlySummary } from "@/features/calendar-summary/components/MonthlySummary";
 import { OverlapSummary } from "@/features/calendar-overlaps/components/OverlapSummary";
 import { AvailableQueFinder } from "@/features/available-que/components/AvailableQueFinder";
@@ -50,7 +50,7 @@ export function CalendarDashboard() {
   const [loadingEvents, setLoadingEvents] = useState(false);
 
   const [showEventSummary, setShowEventSummary] = useState(false);
-  async function loadEvents() {
+  const loadEvents = useCallback(async () => {
     setLoadingEvents(true);
 
     try {
@@ -65,7 +65,7 @@ export function CalendarDashboard() {
     } finally {
       setLoadingEvents(false);
     }
-  }
+  }, [month, year, setEvents]);
   const overlapGroups = useMemo(() => {
     return findOverlappingEvents(filteredEvents);
   }, [filteredEvents]);
@@ -155,6 +155,9 @@ export function CalendarDashboard() {
       tone: "text-sky-200",
     },
   ];
+  useEffect(() => {
+    loadEvents();
+  }, [loadEvents]);
   return (
     <div className="space-y-6 sm:space-y-8">
       <section className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5 sm:p-6">
