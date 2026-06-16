@@ -427,30 +427,30 @@ export function QueCheckForm({ events, dateFormat }: Props) {
             Paste normalized queue text to check for overlapping events.
           </p>
         </div>
+        <div className="mb-4 grid gap-2 sm:grid-cols-4">
+          {QUE_CHECK_STEPS.map((step, index) => {
+            const isActive = workflowStep === step.value;
+
+            return (
+              <button
+                key={step.value}
+                type="button"
+                onClick={() => setWorkflowStep(step.value)}
+                className={[
+                  "rounded-lg border px-3 py-2 text-left text-sm transition",
+                  isActive
+                    ? "border-white bg-white text-black"
+                    : "border-zinc-800 bg-zinc-950 text-zinc-300 hover:bg-zinc-900",
+                ].join(" ")}
+              >
+                <span className="mr-2 text-xs opacity-70">{index + 1}</span>
+                {step.label}
+              </button>
+            );
+          })}
+        </div>
         {showInputStep && (
           <>
-            <div className="mb-4 grid gap-2 sm:grid-cols-4">
-              {QUE_CHECK_STEPS.map((step, index) => {
-                const isActive = workflowStep === step.value;
-
-                return (
-                  <button
-                    key={step.value}
-                    type="button"
-                    onClick={() => setWorkflowStep(step.value)}
-                    className={[
-                      "rounded-lg border px-3 py-2 text-left text-sm transition",
-                      isActive
-                        ? "border-white bg-white text-black"
-                        : "border-zinc-800 bg-zinc-950 text-zinc-300 hover:bg-zinc-900",
-                    ].join(" ")}
-                  >
-                    <span className="mr-2 text-xs opacity-70">{index + 1}</span>
-                    {step.label}
-                  </button>
-                );
-              })}
-            </div>
             <div className="mb-4 flex gap-2">
               <button
                 type="button"
@@ -864,6 +864,7 @@ End: DD-MM-YYYY HH:mm`}</pre>
                           .map(parsedQueToCalendarItem);
 
                         setQueCheckCalendarItems(selectedItems);
+                        setWorkflowStep("results");
                       }}
                       disabled={selectedCalendarQueIds.length === 0}
                       className="rounded-lg border border-sky-800 bg-sky-950 px-3 py-2 text-xs text-sky-100 transition hover:bg-sky-900 disabled:opacity-50"
