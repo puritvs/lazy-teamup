@@ -119,6 +119,7 @@ export function CalendarMonthView({
   const [detailTab, setDetailTab] = useState<DetailTab>("all");
   const currentMonth = dayjs(`${year}-${String(month).padStart(2, "0")}-01`);
   const today = dayjs();
+  const todayKey = today.format("YYYY-MM-DD");
 
   function changeMonth(nextMonth: dayjs.Dayjs) {
     onMonthChange?.(nextMonth.year(), nextMonth.month() + 1);
@@ -277,6 +278,7 @@ export function CalendarMonthView({
           const hasHiddenItems = hiddenItemCount > 0;
           const isCurrentMonth = day.month() + 1 === month;
           const isSelected = selectedDate === dateKey;
+          const isToday = dateKey === todayKey;
 
           return (
             <button
@@ -289,13 +291,29 @@ export function CalendarMonthView({
               className={[
                 "min-h-28 bg-zinc-950 p-2 text-left align-top transition hover:bg-zinc-900",
                 !isCurrentMonth ? "opacity-40" : "",
+                isToday
+                  ? "bg-zinc-900 ring-1 ring-amber-400/70 ring-inset"
+                  : "",
                 isSelected ? "ring-2 ring-white ring-inset" : "",
               ].join(" ")}
             >
               <div className="mb-2 flex items-center justify-between">
-                <span className="text-xs font-semibold text-zinc-300">
+                <span
+                  className={[
+                    "text-xs font-semibold",
+                    isToday
+                      ? "rounded-full bg-amber-400 px-2 py-0.5 text-black"
+                      : "text-zinc-300",
+                  ].join(" ")}
+                >
                   {day.date()}
                 </span>
+
+                {isToday && (
+                  <span className="text-[10px] font-medium uppercase text-amber-300">
+                    Today
+                  </span>
+                )}
               </div>
 
               <div className="space-y-1">
