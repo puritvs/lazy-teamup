@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { MonthlySummary } from "@/features/calendar-summary/components/MonthlySummary";
 import { OverlapSummary } from "@/features/calendar-overlaps/components/OverlapSummary";
 import { AvailableQueFinder } from "@/features/available-que/components/AvailableQueFinder";
-import { DateDisplayFormat } from "@/utils/date";
+
 import { useGlobalSettings } from "@/features/settings/GlobalSettingsProvider";
 import { CalendarMonthView } from "@/features/calendar-view/components/CalendarMonthView";
 import { CalendarVisualItem } from "@/features/calendar-view/types";
@@ -12,12 +12,6 @@ import {
   findOverlappingEvents,
   getOverlappingEventIds,
 } from "@/features/calendar-overlaps/services/findOverlappingEvents";
-type TeamupEvent = {
-  id: string;
-  title: string;
-  start_dt: string;
-  end_dt: string;
-};
 
 const months = [
   { value: 1, label: "January" },
@@ -35,9 +29,6 @@ const months = [
 ];
 
 export function CalendarDashboard() {
-  const [month, setMonth] = useState(6);
-  const [year, setYear] = useState(2026);
-
   const {
     filteredEvents,
     calendarLayers,
@@ -52,27 +43,9 @@ export function CalendarDashboard() {
   const [showCalendarAvailableQue, setShowCalendarAvailableQue] =
     useState(false);
   const [showCalendarQueCheck, setShowCalendarQueCheck] = useState(false);
-  const [rawEvents, setRawEvents] = useState<TeamupEvent[]>([]);
-
-  const [loadingEvents, setLoadingEvents] = useState(false);
 
   const [showEventSummary, setShowEventSummary] = useState(false);
-  // const loadEvents = useCallback(async () => {
-  //   setLoadingEvents(true);
 
-  //   try {
-  //     const res = await fetch(
-  //       `/api/teamup/events/by-month?year=${year}&month=${month}`,
-  //     );
-
-  //     const data = await res.json();
-  //     const nextEvents = data.events ?? data;
-  //     setRawEvents(nextEvents);
-  //     setEvents(nextEvents);
-  //   } finally {
-  //     setLoadingEvents(false);
-  //   }
-  // }, [month, year, setEvents]);
   const overlapGroups = useMemo(() => {
     return findOverlappingEvents(filteredEvents);
   }, [filteredEvents]);

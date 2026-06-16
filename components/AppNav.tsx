@@ -74,7 +74,7 @@ export function AppNav() {
               Que Check
             </Link>
           </div>
-          <div className="hidden items-center gap-2 xl:flex">
+          <div className="hidden items-center gap-2 lg:flex">
             <select
               value={calendarMonth}
               onChange={(e) => setCalendarMonth(Number(e.target.value))}
