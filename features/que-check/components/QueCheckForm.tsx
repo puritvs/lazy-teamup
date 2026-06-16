@@ -414,303 +414,324 @@ export function QueCheckForm({ events, dateFormat }: Props) {
 
   const conflictCount =
     result?.checkedEvents.filter((item) => item.conflictGroup).length ?? 0;
-
+  const showInputStep = workflowStep === "input";
+  const showReviewStep = workflowStep === "review";
+  const showVisualizeStep = workflowStep === "visualize";
+  const showResultsStep = workflowStep === "results";
   return (
-    <section className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5 sm:p-6">
-      <div className="mb-4">
-        <h2 className="text-lg font-bold text-zinc-100">Que Check</h2>
-        <p className="text-sm text-zinc-400">
-          Paste normalized queue text to check for overlapping events.
-        </p>
-      </div>
-      <div className="mb-4 grid gap-2 sm:grid-cols-4">
-        {QUE_CHECK_STEPS.map((step, index) => {
-          const isActive = workflowStep === step.value;
-
-          return (
-            <button
-              key={step.value}
-              type="button"
-              onClick={() => setWorkflowStep(step.value)}
-              className={[
-                "rounded-lg border px-3 py-2 text-left text-sm transition",
-                isActive
-                  ? "border-white bg-white text-black"
-                  : "border-zinc-800 bg-zinc-950 text-zinc-300 hover:bg-zinc-900",
-              ].join(" ")}
-            >
-              <span className="mr-2 text-xs opacity-70">{index + 1}</span>
-              {step.label}
-            </button>
-          );
-        })}
-      </div>
-      <div className="mb-4 flex gap-2">
-        <button
-          type="button"
-          onClick={() => setInputMode("text")}
-          className={[
-            "rounded-lg px-4 py-2 text-sm",
-            inputMode === "text"
-              ? "bg-white text-black"
-              : "bg-zinc-900 text-zinc-300",
-          ].join(" ")}
-        >
-          Paste Message
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setInputMode("manual")}
-          className={[
-            "rounded-lg px-4 py-2 text-sm",
-            inputMode === "manual"
-              ? "bg-white text-black"
-              : "bg-zinc-900 text-zinc-300",
-          ].join(" ")}
-        >
-          Manual Entry
-        </button>
-      </div>
-      <details className="mb-4 rounded-lg border border-zinc-800 bg-zinc-950 p-4">
-        <summary className="cursor-pointer font-semibold text-zinc-100">
-          Generate Que Check Format with AI
-        </summary>
-
-        <p className="mt-2 text-sm text-zinc-400">
-          Copy one of these prompts into any AI chat, paste the staff message
-          after Input:, then paste the AI output back into Que Check.
-        </p>
-
-        <div className="mt-4 rounded-lg border border-zinc-800 bg-black/40 p-3">
-          <p className="font-medium text-zinc-100">General Que Format Prompt</p>
-
-          <p className="mt-1 text-xs text-zinc-500">
-            Use this for normal schedule text conversion.
+    <>
+      <section className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5 sm:p-6">
+        <div className="mb-4">
+          <h2 className="text-lg font-bold text-zinc-100">Que Check</h2>
+          <p className="text-sm text-zinc-400">
+            Paste normalized queue text to check for overlapping events.
           </p>
-
-          <div className="mt-3 flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={async () => {
-                await navigator.clipboard.writeText(QUE_CHECK_AI_PROMPT);
-                setPromptCopied(true);
-                setTimeout(() => setPromptCopied(false), 1500);
-              }}
-              className="rounded-lg bg-white px-4 py-2 text-sm font-medium text-black"
-            >
-              {promptCopied ? "Copied" : "Copy General Prompt"}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setShowGeneralPrompt((current) => !current)}
-              className="rounded-lg border border-zinc-700 px-4 py-2 text-sm text-zinc-200 hover:bg-zinc-900"
-            >
-              {showGeneralPrompt ? "Hide Preview" : "Preview"}
-            </button>
-          </div>
-
-          {showGeneralPrompt && (
-            <textarea
-              readOnly
-              value={QUE_CHECK_AI_PROMPT}
-              className="mt-3 h-64 w-full resize-none rounded-lg border border-zinc-800 bg-zinc-950 p-3 font-mono text-xs text-zinc-100 outline-none"
-            />
-          )}
         </div>
+        {showInputStep && (
+          <>
+            <div className="mb-4 grid gap-2 sm:grid-cols-4">
+              {QUE_CHECK_STEPS.map((step, index) => {
+                const isActive = workflowStep === step.value;
 
-        <div className="mt-4 rounded-lg border border-zinc-800 bg-black/40 p-3">
-          <p className="font-medium text-zinc-100">
-            Personal Que Extraction Prompt
-          </p>
-
-          <p className="mt-1 text-xs text-zinc-500">
-            Use this for table/image schedules where you only want rows assigned
-            to Pu or inclusive rehearsals.
-          </p>
-
-          <div className="mt-3 flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={async () => {
-                await navigator.clipboard.writeText(
-                  PERSONAL_QUE_CHECK_AI_PROMPT,
+                return (
+                  <button
+                    key={step.value}
+                    type="button"
+                    onClick={() => setWorkflowStep(step.value)}
+                    className={[
+                      "rounded-lg border px-3 py-2 text-left text-sm transition",
+                      isActive
+                        ? "border-white bg-white text-black"
+                        : "border-zinc-800 bg-zinc-950 text-zinc-300 hover:bg-zinc-900",
+                    ].join(" ")}
+                  >
+                    <span className="mr-2 text-xs opacity-70">{index + 1}</span>
+                    {step.label}
+                  </button>
                 );
-                setPersonalPromptCopied(true);
-                setTimeout(() => setPersonalPromptCopied(false), 1500);
-              }}
-              className="rounded-lg bg-white px-4 py-2 text-sm font-medium text-black"
-            >
-              {personalPromptCopied ? "Copied" : "Copy Personal Prompt"}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setShowPersonalPrompt((current) => !current)}
-              className="rounded-lg border border-zinc-700 px-4 py-2 text-sm text-zinc-200 hover:bg-zinc-900"
-            >
-              {showPersonalPrompt ? "Hide Preview" : "Preview"}
-            </button>
-          </div>
-
-          {showPersonalPrompt && (
-            <textarea
-              readOnly
-              value={PERSONAL_QUE_CHECK_AI_PROMPT}
-              className="mt-3 h-72 w-full resize-none rounded-lg border border-zinc-800 bg-zinc-950 p-3 font-mono text-xs text-zinc-100 outline-none"
-            />
-          )}
-        </div>
-      </details>
-      {inputMode === "manual" && (
-        <div className="mb-4 rounded-lg border border-zinc-800 bg-zinc-950 p-4">
-          <h3 className="mb-4 font-semibold text-zinc-100">Manual Entry</h3>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <label className="space-y-1">
-              <span className="text-sm text-zinc-400">Title</span>
-              <input
-                value={manualTitle}
-                onChange={(e) => setManualTitle(e.target.value)}
-                className="w-full rounded-lg border border-zinc-800 bg-black px-3 py-2 text-zinc-100"
-              />
-            </label>
-
-            <label className="space-y-1">
-              <span className="text-sm text-zinc-400">Location</span>
-              <input
-                value={manualLocation}
-                onChange={(e) => setManualLocation(e.target.value)}
-                className="w-full rounded-lg border border-zinc-800 bg-black px-3 py-2 text-zinc-100"
-              />
-            </label>
-          </div>
-
-          <div className="mt-4 space-y-3">
-            {manualEvents.map((event, index) => (
-              <div
-                key={index}
-                className="rounded-lg border border-zinc-800 p-3"
+              })}
+            </div>
+            <div className="mb-4 flex gap-2">
+              <button
+                type="button"
+                onClick={() => setInputMode("text")}
+                className={[
+                  "rounded-lg px-4 py-2 text-sm",
+                  inputMode === "text"
+                    ? "bg-white text-black"
+                    : "bg-zinc-900 text-zinc-300",
+                ].join(" ")}
               >
-                <div className="mb-3 flex items-center justify-between">
-                  <span className="font-medium text-zinc-200">
-                    Event #{index + 1}
-                  </span>
+                Paste Message
+              </button>
 
-                  <div className="flex items-center gap-4">
-                    <label className="flex items-center gap-2 text-sm text-zinc-300">
-                      <input
-                        type="checkbox"
-                        checked={event.sameDay}
-                        onChange={(e) => {
-                          const checked = e.target.checked;
+              <button
+                type="button"
+                onClick={() => setInputMode("manual")}
+                className={[
+                  "rounded-lg px-4 py-2 text-sm",
+                  inputMode === "manual"
+                    ? "bg-white text-black"
+                    : "bg-zinc-900 text-zinc-300",
+                ].join(" ")}
+              >
+                Manual Entry
+              </button>
+            </div>
+            <details className="mb-4 rounded-lg border border-zinc-800 bg-zinc-950 p-4">
+              <summary className="cursor-pointer font-semibold text-zinc-100">
+                Generate Que Check Format with AI
+              </summary>
 
-                          setManualEvents((current) =>
-                            current.map((item, i) =>
-                              i === index
-                                ? {
-                                    ...item,
-                                    sameDay: checked,
-                                    endDate: checked
-                                      ? item.startDate
-                                      : item.endDate,
-                                  }
-                                : item,
-                            ),
-                          );
-                        }}
-                      />
-                      Same day
-                    </label>
+              <p className="mt-2 text-sm text-zinc-400">
+                Copy one of these prompts into any AI chat, paste the staff
+                message after Input:, then paste the AI output back into Que
+                Check.
+              </p>
 
-                    {manualEvents.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => removeManualEvent(index)}
-                        className="text-sm text-red-300"
-                      >
-                        Remove
-                      </button>
-                    )}
-                  </div>
+              <div className="mt-4 rounded-lg border border-zinc-800 bg-black/40 p-3">
+                <p className="font-medium text-zinc-100">
+                  General Que Format Prompt
+                </p>
+
+                <p className="mt-1 text-xs text-zinc-500">
+                  Use this for normal schedule text conversion.
+                </p>
+
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      await navigator.clipboard.writeText(QUE_CHECK_AI_PROMPT);
+                      setPromptCopied(true);
+                      setTimeout(() => setPromptCopied(false), 1500);
+                    }}
+                    className="rounded-lg bg-white px-4 py-2 text-sm font-medium text-black"
+                  >
+                    {promptCopied ? "Copied" : "Copy General Prompt"}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowGeneralPrompt((current) => !current)}
+                    className="rounded-lg border border-zinc-700 px-4 py-2 text-sm text-zinc-200 hover:bg-zinc-900"
+                  >
+                    {showGeneralPrompt ? "Hide Preview" : "Preview"}
+                  </button>
                 </div>
 
-                <div className="grid gap-3 md:grid-cols-2">
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    <input
-                      type="date"
-                      value={event.startDate}
-                      onChange={(e) => {
-                        const value = e.target.value;
-
-                        setManualEvents((current) =>
-                          current.map((item, i) =>
-                            i === index
-                              ? {
-                                  ...item,
-                                  startDate: value,
-                                  endDate: item.sameDay ? value : item.endDate,
-                                }
-                              : item,
-                          ),
-                        );
-                      }}
-                      className="rounded border border-zinc-800 bg-black px-3 py-2"
-                    />
-
-                    <TimeSelect
-                      value={event.startTime || "00:00"}
-                      onChange={(value) =>
-                        updateManualEvent(index, "startTime", value)
-                      }
-                    />
-                  </div>
-
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    <input
-                      type="date"
-                      value={event.sameDay ? event.startDate : event.endDate}
-                      disabled={event.sameDay}
-                      onChange={(e) =>
-                        updateManualEvent(index, "endDate", e.target.value)
-                      }
-                      className="rounded border border-zinc-800 bg-black px-3 py-2 disabled:opacity-50"
-                    />
-
-                    <TimeSelect
-                      value={event.endTime || "00:00"}
-                      onChange={(value) =>
-                        updateManualEvent(index, "endTime", value)
-                      }
-                    />
-                  </div>
-                </div>
+                {showGeneralPrompt && (
+                  <textarea
+                    readOnly
+                    value={QUE_CHECK_AI_PROMPT}
+                    className="mt-3 h-64 w-full resize-none rounded-lg border border-zinc-800 bg-zinc-950 p-3 font-mono text-xs text-zinc-100 outline-none"
+                  />
+                )}
               </div>
-            ))}
-          </div>
 
-          <button
-            type="button"
-            onClick={addManualEvent}
-            className="mt-4 rounded-lg border border-zinc-700 px-4 py-2 text-sm text-zinc-200"
-          >
-            + Add Event
-          </button>
-        </div>
-      )}
-      <textarea
-        value={message}
-        onChange={(e) => {
-          setMessage(e.target.value);
-          setSubmitted(false);
-        }}
-        className="h-48 w-full resize-none rounded-lg border border-zinc-800 bg-zinc-950 p-3 font-mono text-sm text-zinc-100 outline-none"
-      />
+              <div className="mt-4 rounded-lg border border-zinc-800 bg-black/40 p-3">
+                <p className="font-medium text-zinc-100">
+                  Personal Que Extraction Prompt
+                </p>
 
-      <div className="mt-3 rounded-lg border border-zinc-800 bg-zinc-950 p-3 text-xs text-zinc-400">
-        <p className="mb-1 font-semibold text-zinc-200">Expected format</p>
-        <pre className="whitespace-pre-wrap">{`Title: Default Event Name
+                <p className="mt-1 text-xs text-zinc-500">
+                  Use this for table/image schedules where you only want rows
+                  assigned to Pu or inclusive rehearsals.
+                </p>
+
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      await navigator.clipboard.writeText(
+                        PERSONAL_QUE_CHECK_AI_PROMPT,
+                      );
+                      setPersonalPromptCopied(true);
+                      setTimeout(() => setPersonalPromptCopied(false), 1500);
+                    }}
+                    className="rounded-lg bg-white px-4 py-2 text-sm font-medium text-black"
+                  >
+                    {personalPromptCopied ? "Copied" : "Copy Personal Prompt"}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowPersonalPrompt((current) => !current)}
+                    className="rounded-lg border border-zinc-700 px-4 py-2 text-sm text-zinc-200 hover:bg-zinc-900"
+                  >
+                    {showPersonalPrompt ? "Hide Preview" : "Preview"}
+                  </button>
+                </div>
+
+                {showPersonalPrompt && (
+                  <textarea
+                    readOnly
+                    value={PERSONAL_QUE_CHECK_AI_PROMPT}
+                    className="mt-3 h-72 w-full resize-none rounded-lg border border-zinc-800 bg-zinc-950 p-3 font-mono text-xs text-zinc-100 outline-none"
+                  />
+                )}
+              </div>
+            </details>
+            {inputMode === "manual" && (
+              <div className="mb-4 rounded-lg border border-zinc-800 bg-zinc-950 p-4">
+                <h3 className="mb-4 font-semibold text-zinc-100">
+                  Manual Entry
+                </h3>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <label className="space-y-1">
+                    <span className="text-sm text-zinc-400">Title</span>
+                    <input
+                      value={manualTitle}
+                      onChange={(e) => setManualTitle(e.target.value)}
+                      className="w-full rounded-lg border border-zinc-800 bg-black px-3 py-2 text-zinc-100"
+                    />
+                  </label>
+
+                  <label className="space-y-1">
+                    <span className="text-sm text-zinc-400">Location</span>
+                    <input
+                      value={manualLocation}
+                      onChange={(e) => setManualLocation(e.target.value)}
+                      className="w-full rounded-lg border border-zinc-800 bg-black px-3 py-2 text-zinc-100"
+                    />
+                  </label>
+                </div>
+
+                <div className="mt-4 space-y-3">
+                  {manualEvents.map((event, index) => (
+                    <div
+                      key={index}
+                      className="rounded-lg border border-zinc-800 p-3"
+                    >
+                      <div className="mb-3 flex items-center justify-between">
+                        <span className="font-medium text-zinc-200">
+                          Event #{index + 1}
+                        </span>
+
+                        <div className="flex items-center gap-4">
+                          <label className="flex items-center gap-2 text-sm text-zinc-300">
+                            <input
+                              type="checkbox"
+                              checked={event.sameDay}
+                              onChange={(e) => {
+                                const checked = e.target.checked;
+
+                                setManualEvents((current) =>
+                                  current.map((item, i) =>
+                                    i === index
+                                      ? {
+                                          ...item,
+                                          sameDay: checked,
+                                          endDate: checked
+                                            ? item.startDate
+                                            : item.endDate,
+                                        }
+                                      : item,
+                                  ),
+                                );
+                              }}
+                            />
+                            Same day
+                          </label>
+
+                          {manualEvents.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => removeManualEvent(index)}
+                              className="text-sm text-red-300"
+                            >
+                              Remove
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="grid gap-3 md:grid-cols-2">
+                        <div className="grid gap-2 sm:grid-cols-2">
+                          <input
+                            type="date"
+                            value={event.startDate}
+                            onChange={(e) => {
+                              const value = e.target.value;
+
+                              setManualEvents((current) =>
+                                current.map((item, i) =>
+                                  i === index
+                                    ? {
+                                        ...item,
+                                        startDate: value,
+                                        endDate: item.sameDay
+                                          ? value
+                                          : item.endDate,
+                                      }
+                                    : item,
+                                ),
+                              );
+                            }}
+                            className="rounded border border-zinc-800 bg-black px-3 py-2"
+                          />
+
+                          <TimeSelect
+                            value={event.startTime || "00:00"}
+                            onChange={(value) =>
+                              updateManualEvent(index, "startTime", value)
+                            }
+                          />
+                        </div>
+
+                        <div className="grid gap-2 sm:grid-cols-2">
+                          <input
+                            type="date"
+                            value={
+                              event.sameDay ? event.startDate : event.endDate
+                            }
+                            disabled={event.sameDay}
+                            onChange={(e) =>
+                              updateManualEvent(
+                                index,
+                                "endDate",
+                                e.target.value,
+                              )
+                            }
+                            className="rounded border border-zinc-800 bg-black px-3 py-2 disabled:opacity-50"
+                          />
+
+                          <TimeSelect
+                            value={event.endTime || "00:00"}
+                            onChange={(value) =>
+                              updateManualEvent(index, "endTime", value)
+                            }
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={addManualEvent}
+                  className="mt-4 rounded-lg border border-zinc-700 px-4 py-2 text-sm text-zinc-200"
+                >
+                  + Add Event
+                </button>
+              </div>
+            )}
+            <textarea
+              value={message}
+              onChange={(e) => {
+                setMessage(e.target.value);
+                setSubmitted(false);
+              }}
+              className="h-48 w-full resize-none rounded-lg border border-zinc-800 bg-zinc-950 p-3 font-mono text-sm text-zinc-100 outline-none"
+            />
+
+            <div className="mt-3 rounded-lg border border-zinc-800 bg-zinc-950 p-3 text-xs text-zinc-400">
+              <p className="mb-1 font-semibold text-zinc-200">
+                Expected format
+              </p>
+              <pre className="whitespace-pre-wrap">{`Title: Default Event Name
 Location: Optional Default Location
 
 Start: DD-MM-YYYY HH:mm
@@ -720,203 +741,218 @@ Title: Different Event Name
 Location: Different Location
 Start: DD-MM-YYYY HH:mm
 End: DD-MM-YYYY HH:mm`}</pre>
-      </div>
-
-      <button
-        type="button"
-        onClick={() => {
-          setSubmitted(true);
-          setWorkflowStep("review");
-        }}
-        className="mt-4 rounded-lg bg-white px-4 py-2 text-sm font-medium text-black"
-      >
-        Check Que
-      </button>
-
-      {result?.error && (
-        <p className="mt-4 rounded-lg border border-red-900 bg-red-950/30 p-3 text-sm text-red-300">
-          {result.error}
-        </p>
-      )}
-
-      {result && !result.error && (
-        <div className="mt-5 space-y-4">
-          <div className="grid gap-3 sm:grid-cols-3">
-            <div className="rounded-lg border border-zinc-800 bg-zinc-950 p-4">
-              <p className="text-2xl font-bold text-zinc-100">
-                {result.checkedEvents.length}
-              </p>
-              <p className="text-sm text-zinc-400">Parsed events</p>
             </div>
-
-            <div className="rounded-lg border border-emerald-900 bg-emerald-950/20 p-4">
-              <p className="text-2xl font-bold text-emerald-300">
-                {validCount}
-              </p>
-              <p className="text-sm text-zinc-400">No conflict</p>
-            </div>
-
-            <div className="rounded-lg border border-red-900 bg-red-950/20 p-4">
-              <p className="text-2xl font-bold text-red-300">{conflictCount}</p>
-              <p className="text-sm text-zinc-400">Conflicts</p>
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => setWorkflowStep("visualize")}
-              className="rounded-lg border border-sky-800 bg-sky-950 px-3 py-2 text-xs text-sky-100"
-            >
-              Go to visualize
-            </button>
 
             <button
               type="button"
-              onClick={() => setWorkflowStep("results")}
-              className="rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs text-zinc-300"
+              onClick={() => {
+                setSubmitted(true);
+                setWorkflowStep("review");
+              }}
+              className="mt-4 rounded-lg bg-white px-4 py-2 text-sm font-medium text-black"
             >
-              Go to conflict results
+              Check Que
             </button>
-          </div>
-          {result?.checkedEvents.length > 0 && (
-            <div className="mt-4 rounded-lg border border-zinc-800 bg-zinc-950 p-4">
-              <p className="font-semibold text-zinc-100">Visualize Que Check</p>
+          </>
+        )}
+        {result?.error && (
+          <p className="mt-4 rounded-lg border border-red-900 bg-red-950/30 p-3 text-sm text-red-300">
+            {result.error}
+          </p>
+        )}
 
-              <p className="mt-1 text-xs text-zinc-500">
-                Select proposed Que items to display on the calendar.
-              </p>
-
-              <div className="mt-3 space-y-2">
-                {result.checkedEvents.map(({ parsed }) => (
-                  <label
-                    key={parsed.id}
-                    className="flex items-start gap-3 rounded-lg border border-zinc-800 bg-black/40 p-3"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selectedCalendarQueIds.includes(parsed.id)}
-                      onChange={(inputEvent) => {
-                        setSelectedCalendarQueIds((current) => {
-                          if (inputEvent.target.checked) {
-                            return [...new Set([...current, parsed.id])];
-                          }
-
-                          return current.filter((id) => id !== parsed.id);
-                        });
-                      }}
-                      className="mt-1"
-                    />
-
-                    <span>
-                      <span className="block text-sm text-zinc-100">
-                        {parsed.title}
-                      </span>
-                      <span className="block text-xs text-zinc-500">
-                        {parsed.date} {parsed.startTime} - {parsed.endDate}{" "}
-                        {parsed.endTime}
-                      </span>
-                    </span>
-                  </label>
-                ))}
-              </div>
-
-              <div className="mt-3 flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    const selectedItems = result.checkedEvents
-                      .map((item) => item.parsed)
-                      .filter((event) =>
-                        selectedCalendarQueIds.includes(event.id),
-                      )
-                      .map(parsedQueToCalendarItem);
-
-                    setQueCheckCalendarItems(selectedItems);
-                  }}
-                  disabled={selectedCalendarQueIds.length === 0}
-                  className="rounded-lg border border-sky-800 bg-sky-950 px-3 py-2 text-xs text-sky-100 transition hover:bg-sky-900 disabled:opacity-50"
-                >
-                  Show Selected on Calendar
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => clearCalendarLayer("queCheck")}
-                  className="rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs text-zinc-300 transition hover:bg-zinc-900 hover:text-white"
-                >
-                  Clear Calendar
-                </button>
-              </div>
-            </div>
-          )}
-          {result.checkedEvents.map(
-            ({ parsed, conflictGroup, travelWarnings }) => (
-              <div
-                key={parsed.id}
-                className="rounded-xl border border-zinc-800 bg-zinc-950 p-4"
-              >
-                <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <p className="font-semibold text-zinc-100">
-                      {parsed.title}
-                    </p>
-                    <p className="text-sm text-zinc-400">
-                      {formatDate(parsed.date, dateFormat)} {parsed.startTime} -{" "}
-                      {parsed.crossesMidnight
-                        ? `${formatDate(parsed.endDate, dateFormat)} ${parsed.endTime}`
-                        : parsed.endTime}
-                    </p>
-                    {parsed.crossesMidnight && (
-                      <p className="mt-1 text-xs text-amber-300">
-                        Crosses midnight
+        {result &&
+          !result.error &&
+          (showReviewStep || showVisualizeStep || showResultsStep) && (
+            <div className="mt-5 space-y-4">
+              {showReviewStep && (
+                <>
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    <div className="rounded-lg border border-zinc-800 bg-zinc-950 p-4">
+                      <p className="text-2xl font-bold text-zinc-100">
+                        {result.checkedEvents.length}
                       </p>
-                    )}
-                  </div>
+                      <p className="text-sm text-zinc-400">Parsed events</p>
+                    </div>
 
-                  <span
-                    className={[
-                      "w-fit rounded-full px-3 py-1 text-xs",
-                      conflictGroup
-                        ? "bg-red-950 text-red-200"
-                        : "bg-emerald-950 text-emerald-200",
-                    ].join(" ")}
-                  >
-                    {conflictGroup ? "Conflict" : "Available"}
-                  </span>
-                </div>
+                    <div className="rounded-lg border border-emerald-900 bg-emerald-950/20 p-4">
+                      <p className="text-2xl font-bold text-emerald-300">
+                        {validCount}
+                      </p>
+                      <p className="text-sm text-zinc-400">No conflict</p>
+                    </div>
 
-                {conflictGroup ? (
-                  <OverlapConflictCard
-                    group={conflictGroup}
-                    dateFormat={dateFormat}
-                  />
-                ) : (
-                  <p className="rounded-lg border border-emerald-900 bg-emerald-950/20 p-3 text-sm text-emerald-300">
-                    No overlapping events found.
-                  </p>
-                )}
-                {travelWarnings.length > 0 && (
-                  <div className="mt-3 rounded-lg border border-amber-900 bg-amber-950/30 p-3 text-sm text-amber-200">
-                    <p className="mb-2 font-semibold">Travel warning</p>
-
-                    <div className="space-y-1">
-                      {travelWarnings.map((warning, index) => (
-                        <p key={index}>
-                          {warning.type === "from"
-                            ? `[travel from: ${warning.location}]`
-                            : `[next location: ${warning.location}]`}{" "}
-                          Need {warning.requiredMinutes} min, only{" "}
-                          {warning.actualMinutes} min available.
-                        </p>
-                      ))}
+                    <div className="rounded-lg border border-red-900 bg-red-950/20 p-4">
+                      <p className="text-2xl font-bold text-red-300">
+                        {conflictCount}
+                      </p>
+                      <p className="text-sm text-zinc-400">Conflicts</p>
                     </div>
                   </div>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setWorkflowStep("visualize")}
+                      className="rounded-lg border border-sky-800 bg-sky-950 px-3 py-2 text-xs text-sky-100"
+                    >
+                      Go to visualize
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setWorkflowStep("results")}
+                      className="rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs text-zinc-300"
+                    >
+                      Go to conflict results
+                    </button>
+                  </div>
+                </>
+              )}
+              {showVisualizeStep && result.checkedEvents.length > 0 && (
+                <div className="mt-4 rounded-lg border border-zinc-800 bg-zinc-950 p-4">
+                  <p className="font-semibold text-zinc-100">
+                    Visualize Que Check
+                  </p>
+
+                  <p className="mt-1 text-xs text-zinc-500">
+                    Select proposed Que items to display on the calendar.
+                  </p>
+
+                  <div className="mt-3 space-y-2">
+                    {result.checkedEvents.map(({ parsed }) => (
+                      <label
+                        key={parsed.id}
+                        className="flex items-start gap-3 rounded-lg border border-zinc-800 bg-black/40 p-3"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedCalendarQueIds.includes(parsed.id)}
+                          onChange={(inputEvent) => {
+                            setSelectedCalendarQueIds((current) => {
+                              if (inputEvent.target.checked) {
+                                return [...new Set([...current, parsed.id])];
+                              }
+
+                              return current.filter((id) => id !== parsed.id);
+                            });
+                          }}
+                          className="mt-1"
+                        />
+
+                        <span>
+                          <span className="block text-sm text-zinc-100">
+                            {parsed.title}
+                          </span>
+                          <span className="block text-xs text-zinc-500">
+                            {parsed.date} {parsed.startTime} - {parsed.endDate}{" "}
+                            {parsed.endTime}
+                          </span>
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const selectedItems = result.checkedEvents
+                          .map((item) => item.parsed)
+                          .filter((event) =>
+                            selectedCalendarQueIds.includes(event.id),
+                          )
+                          .map(parsedQueToCalendarItem);
+
+                        setQueCheckCalendarItems(selectedItems);
+                      }}
+                      disabled={selectedCalendarQueIds.length === 0}
+                      className="rounded-lg border border-sky-800 bg-sky-950 px-3 py-2 text-xs text-sky-100 transition hover:bg-sky-900 disabled:opacity-50"
+                    >
+                      Show Selected on Calendar
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => clearCalendarLayer("queCheck")}
+                      className="rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs text-zinc-300 transition hover:bg-zinc-900 hover:text-white"
+                    >
+                      Clear Calendar
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {showResultsStep &&
+                result.checkedEvents.map(
+                  ({ parsed, conflictGroup, travelWarnings }) => (
+                    <div
+                      key={parsed.id}
+                      className="rounded-xl border border-zinc-800 bg-zinc-950 p-4"
+                    >
+                      <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                          <p className="font-semibold text-zinc-100">
+                            {parsed.title}
+                          </p>
+                          <p className="text-sm text-zinc-400">
+                            {formatDate(parsed.date, dateFormat)}{" "}
+                            {parsed.startTime} -{" "}
+                            {parsed.crossesMidnight
+                              ? `${formatDate(parsed.endDate, dateFormat)} ${parsed.endTime}`
+                              : parsed.endTime}
+                          </p>
+                          {parsed.crossesMidnight && (
+                            <p className="mt-1 text-xs text-amber-300">
+                              Crosses midnight
+                            </p>
+                          )}
+                        </div>
+
+                        <span
+                          className={[
+                            "w-fit rounded-full px-3 py-1 text-xs",
+                            conflictGroup
+                              ? "bg-red-950 text-red-200"
+                              : "bg-emerald-950 text-emerald-200",
+                          ].join(" ")}
+                        >
+                          {conflictGroup ? "Conflict" : "Available"}
+                        </span>
+                      </div>
+
+                      {conflictGroup ? (
+                        <OverlapConflictCard
+                          group={conflictGroup}
+                          dateFormat={dateFormat}
+                        />
+                      ) : (
+                        <p className="rounded-lg border border-emerald-900 bg-emerald-950/20 p-3 text-sm text-emerald-300">
+                          No overlapping events found.
+                        </p>
+                      )}
+                      {travelWarnings.length > 0 && (
+                        <div className="mt-3 rounded-lg border border-amber-900 bg-amber-950/30 p-3 text-sm text-amber-200">
+                          <p className="mb-2 font-semibold">Travel warning</p>
+
+                          <div className="space-y-1">
+                            {travelWarnings.map((warning, index) => (
+                              <p key={index}>
+                                {warning.type === "from"
+                                  ? `[travel from: ${warning.location}]`
+                                  : `[next location: ${warning.location}]`}{" "}
+                                Need {warning.requiredMinutes} min, only{" "}
+                                {warning.actualMinutes} min available.
+                              </p>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ),
                 )}
-              </div>
-            ),
+            </div>
           )}
-        </div>
-      )}
-    </section>
+      </section>
+    </>
   );
 }
