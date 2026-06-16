@@ -35,4 +35,16 @@ export type GlobalSettingsContextValue = {
   setAvailableQueCalendarItems: (items: CalendarVisualItem[]) => void;
   setQueCheckCalendarItems: (items: CalendarVisualItem[]) => void;
   clearCalendarLayer: (layer: "availableQue" | "queCheck") => void;
+  calendarMonth: number;
+  setCalendarMonth: Dispatch<SetStateAction<number>>;
+
+  calendarYear: number;
+  setCalendarYear: Dispatch<SetStateAction<number>>;
+
+  dateFormat: "day-month-year" | "month-name";
+  setDateFormat: Dispatch<SetStateAction<"day-month-year" | "month-name">>;
+
+  rawEvents: TeamupEvent[];
+  loadingEvents: boolean;
+  loadEvents: () => Promise<void>;
 };

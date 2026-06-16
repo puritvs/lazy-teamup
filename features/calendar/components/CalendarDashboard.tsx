@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { MonthlySummary } from "@/features/calendar-summary/components/MonthlySummary";
 import { OverlapSummary } from "@/features/calendar-overlaps/components/OverlapSummary";
 import { AvailableQueFinder } from "@/features/available-que/components/AvailableQueFinder";
@@ -37,9 +37,16 @@ const months = [
 export function CalendarDashboard() {
   const [month, setMonth] = useState(6);
   const [year, setYear] = useState(2026);
-  const [dateFormat, setDateFormat] =
-    useState<DateDisplayFormat>("day-month-year");
-  const { setEvents, filteredEvents, calendarLayers } = useGlobalSettings();
+
+  const {
+    filteredEvents,
+    calendarLayers,
+    calendarMonth,
+    setCalendarMonth,
+    calendarYear,
+    setCalendarYear,
+    dateFormat,
+  } = useGlobalSettings();
   const [showCalendarEvents, setShowCalendarEvents] = useState(true);
   const [highlightConflicts, setHighlightConflicts] = useState(true);
   const [showCalendarAvailableQue, setShowCalendarAvailableQue] =
@@ -50,22 +57,22 @@ export function CalendarDashboard() {
   const [loadingEvents, setLoadingEvents] = useState(false);
 
   const [showEventSummary, setShowEventSummary] = useState(false);
-  const loadEvents = useCallback(async () => {
-    setLoadingEvents(true);
+  // const loadEvents = useCallback(async () => {
+  //   setLoadingEvents(true);
 
-    try {
-      const res = await fetch(
-        `/api/teamup/events/by-month?year=${year}&month=${month}`,
-      );
+  //   try {
+  //     const res = await fetch(
+  //       `/api/teamup/events/by-month?year=${year}&month=${month}`,
+  //     );
 
-      const data = await res.json();
-      const nextEvents = data.events ?? data;
-      setRawEvents(nextEvents);
-      setEvents(nextEvents);
-    } finally {
-      setLoadingEvents(false);
-    }
-  }, [month, year, setEvents]);
+  //     const data = await res.json();
+  //     const nextEvents = data.events ?? data;
+  //     setRawEvents(nextEvents);
+  //     setEvents(nextEvents);
+  //   } finally {
+  //     setLoadingEvents(false);
+  //   }
+  // }, [month, year, setEvents]);
   const overlapGroups = useMemo(() => {
     return findOverlappingEvents(filteredEvents);
   }, [filteredEvents]);
@@ -155,77 +162,11 @@ export function CalendarDashboard() {
       tone: "text-sky-200",
     },
   ];
-  useEffect(() => {
-    loadEvents();
-  }, [loadEvents]);
+  // useEffect(() => {
+  //   loadEvents();
+  // }, [loadEvents]);
   return (
     <div className="space-y-6 sm:space-y-8">
-      <section className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5 sm:p-6">
-        <div className="mb-4">
-          <h2 className="text-lg font-bold text-zinc-100">Calendar Controls</h2>
-          <p className="text-sm text-zinc-400">
-            Choose the month, refresh Teamup events, and control date display.
-          </p>
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <label className="space-y-2">
-            <span className="text-sm text-zinc-400">Month</span>
-            <select
-              value={month}
-              onChange={(e) => setMonth(Number(e.target.value))}
-              className="w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-zinc-100 outline-none"
-            >
-              {months.map((item) => (
-                <option key={item.value} value={item.value}>
-                  {item.label}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="space-y-2">
-            <span className="text-sm text-zinc-400">Year</span>
-            <select
-              value={year}
-              onChange={(e) => setYear(Number(e.target.value))}
-              className="w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-zinc-100 outline-none"
-            >
-              {Array.from({ length: 21 }, (_, index) => 2020 + index).map(
-                (item) => (
-                  <option key={item} value={item}>
-                    {item}
-                  </option>
-                ),
-              )}
-            </select>
-          </label>
-
-          <label className="space-y-2">
-            <span className="text-sm text-zinc-400">Date format</span>
-            <select
-              value={dateFormat}
-              onChange={(e) =>
-                setDateFormat(e.target.value as DateDisplayFormat)
-              }
-              className="w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-zinc-100 outline-none"
-            >
-              <option value="day-month-year">01-06-2026</option>
-              <option value="month-name">01 Jun 2026</option>
-            </select>
-          </label>
-
-          <button
-            type="button"
-            onClick={loadEvents}
-            disabled={loadingEvents}
-            className="self-end rounded-lg bg-white px-4 py-2 text-sm font-medium text-black disabled:opacity-50"
-          >
-            {loadingEvents ? "Loading..." : "Refresh"}
-          </button>
-        </div>
-      </section>
-
       <section className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5">
         <div className="mb-3">
           <h2 className="text-lg font-bold text-zinc-100">Calendar Layers</h2>
@@ -281,12 +222,12 @@ export function CalendarDashboard() {
         events={showCalendarEvents ? filteredEvents : []}
         visualItems={calendarVisualItems}
         highlightedEventIds={highlightedEventIds}
-        year={year}
-        month={month}
+        year={calendarYear}
+        month={calendarMonth}
         dateFormat={dateFormat}
         onMonthChange={(nextYear, nextMonth) => {
-          setYear(nextYear);
-          setMonth(nextMonth);
+          setCalendarYear(nextYear);
+          setCalendarMonth(nextMonth);
         }}
       />
 
@@ -329,8 +270,8 @@ export function CalendarDashboard() {
           <OverlapSummary
             events={filteredEvents}
             dateFormat={dateFormat}
-            year={year}
-            month={month}
+            year={calendarYear}
+            month={calendarMonth}
           />
         </div>
 
@@ -355,8 +296,8 @@ export function CalendarDashboard() {
           {showEventSummary && (
             <div className="mt-4">
               <MonthlySummary
-                year={year}
-                month={month}
+                year={calendarYear}
+                month={calendarMonth}
                 dateFormat={dateFormat}
                 embedded
               />

@@ -5,6 +5,7 @@ import {
   ReactNode,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
 } from "react";
@@ -19,7 +20,17 @@ const GlobalSettingsContext = createContext<GlobalSettingsContextValue | null>(
 );
 
 export function GlobalSettingsProvider({ children }: { children: ReactNode }) {
+  const today = new Date();
+
+  const [calendarMonth, setCalendarMonth] = useState(today.getMonth() + 1);
+  const [calendarYear, setCalendarYear] = useState(today.getFullYear());
+  const [dateFormat, setDateFormat] = useState<"day-month-year" | "month-name">(
+    "day-month-year",
+  );
+
   const [events, setEvents] = useState<TeamupEvent[]>([]);
+  const [rawEvents, setRawEvents] = useState<TeamupEvent[]>([]);
+  const [loadingEvents, setLoadingEvents] = useState(false);
   const [availableQueCalendarItems, setAvailableQueCalendarItems] = useState<
     CalendarVisualItem[]
   >([]);
@@ -48,7 +59,27 @@ export function GlobalSettingsProvider({ children }: { children: ReactNode }) {
     "lazy-teamup-travel-buffers",
     {},
   );
+  const loadEvents = useCallback(async () => {
+    setLoadingEvents(true);
 
+    try {
+      const res = await fetch(
+        `/api/teamup/events/by-month?year=${calendarYear}&month=${calendarMonth}`,
+      );
+
+      const data = await res.json();
+      const nextEvents = data.events ?? data;
+
+      setRawEvents(nextEvents);
+      setEvents(nextEvents);
+    } finally {
+      setLoadingEvents(false);
+    }
+  }, [calendarMonth, calendarYear]);
+
+  useEffect(() => {
+    loadEvents();
+  }, [loadEvents]);
   const filteredEvents = useMemo(() => {
     return events.filter((event) => !excludedTitles.includes(event.title));
   }, [events, excludedTitles]);
@@ -107,6 +138,15 @@ export function GlobalSettingsProvider({ children }: { children: ReactNode }) {
       setAvailableQueCalendarItems,
       setQueCheckCalendarItems,
       clearCalendarLayer,
+      calendarMonth,
+      setCalendarMonth,
+      calendarYear,
+      setCalendarYear,
+      dateFormat,
+      setDateFormat,
+      rawEvents,
+      loadingEvents,
+      loadEvents,
     }),
     [
       events,
@@ -120,6 +160,12 @@ export function GlobalSettingsProvider({ children }: { children: ReactNode }) {
       availableQueCalendarItems,
       queCheckCalendarItems,
       clearCalendarLayer,
+      calendarMonth,
+      calendarYear,
+      dateFormat,
+      rawEvents,
+      loadingEvents,
+      loadEvents,
     ],
   );
 
