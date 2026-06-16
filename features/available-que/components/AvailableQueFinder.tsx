@@ -135,6 +135,7 @@ function buildCopyableAvailableQueText(
     }[];
   }[],
   events: EventForAvailability[],
+  includeTravelLabels: boolean,
 ) {
   const daysWithSlots = availableDays.filter((day) => day.slots.length > 0);
 
@@ -155,19 +156,21 @@ function buildCopyableAvailableQueText(
 
         const lines = [`- ${slot.start} - ${slot.end}${duration}`];
 
-        if (
-          travelContext.requiresTravelBefore &&
-          travelContext.requiresTravelAfter &&
-          travelContext.previousLocation === travelContext.nextLocation
-        ) {
-          lines.push(`  [travel: ${travelContext.previousLocation}]`);
-        } else {
-          if (travelContext.requiresTravelBefore) {
-            lines.push(`  [travel from: ${travelContext.previousLocation}]`);
-          }
+        if (includeTravelLabels) {
+          if (
+            travelContext.requiresTravelBefore &&
+            travelContext.requiresTravelAfter &&
+            travelContext.previousLocation === travelContext.nextLocation
+          ) {
+            lines.push(`  [travel: ${travelContext.previousLocation}]`);
+          } else {
+            if (travelContext.requiresTravelBefore) {
+              lines.push(`  [travel from: ${travelContext.previousLocation}]`);
+            }
 
-          if (travelContext.requiresTravelAfter) {
-            lines.push(`  [next location: ${travelContext.nextLocation}]`);
+            if (travelContext.requiresTravelAfter) {
+              lines.push(`  [next location: ${travelContext.nextLocation}]`);
+            }
           }
         }
 
@@ -200,11 +203,18 @@ export function AvailableQueFinder({ events, dateFormat }: Props) {
   const [showCopyableText, setShowCopyableText] = useState(false);
   const [copied, setCopied] = useState(false);
   const [showOnlyTravelSlots, setShowOnlyTravelSlots] = useState(false);
+  const [includeTravelLabelsInText, setIncludeTravelLabelsInText] =
+    useState(false);
+  const [
+    includeTravelBuffersInCalculation,
+    setIncludeTravelBuffersInCalculation,
+  ] = useState(true);
   const detectedLocations = useMemo(() => {
     return getUniqueNonDefaultLocations(events);
   }, [events]);
   const minDurationMinutes = minDurationHours * 60 + minDurationMins;
   const {
+    travelBuffers,
     ensureTravelBuffersForLocations,
     setAvailableQueCalendarItems,
     clearCalendarLayer,
@@ -235,6 +245,8 @@ export function AvailableQueFinder({ events, dateFormat }: Props) {
       dailyStartTime,
       dailyEndTime,
       minDurationMinutes,
+      travelBuffers,
+      includeTravelBuffers: includeTravelBuffersInCalculation,
     });
   }, [
     submitted,
@@ -245,8 +257,9 @@ export function AvailableQueFinder({ events, dateFormat }: Props) {
     dailyStartTime,
     dailyEndTime,
     minDurationMinutes,
+    travelBuffers,
+    includeTravelBuffersInCalculation,
   ]);
-
   const displayedAvailableDays = useMemo(() => {
     if (!showOnlyTravelSlots) {
       return availableDays;
@@ -291,6 +304,7 @@ export function AvailableQueFinder({ events, dateFormat }: Props) {
   const copyableText = buildCopyableAvailableQueText(
     displayedAvailableDays,
     events,
+    includeTravelLabelsInText,
   );
   useEffect(() => {
     ensureTravelBuffersForLocations(detectedLocations);
@@ -470,6 +484,47 @@ export function AvailableQueFinder({ events, dateFormat }: Props) {
             <span className="block text-xs text-zinc-500">
               Shows slots where the nearest previous or next event on the same
               day has a non-default location.
+            </span>
+          </span>
+        </label>
+        <label className="flex items-start gap-3 rounded-lg border border-zinc-800 bg-zinc-950 p-3 sm:col-span-2">
+          <input
+            type="checkbox"
+            checked={includeTravelBuffersInCalculation}
+            onChange={(e) =>
+              setIncludeTravelBuffersInCalculation(e.target.checked)
+            }
+            className="mt-1"
+          />
+
+          <span>
+            <span className="block text-sm text-zinc-100">
+              Apply travel buffers to available slots
+            </span>
+
+            <span className="block text-xs text-zinc-500">
+              Trims free slots using the configured travel buffer before or
+              after non-default locations.
+            </span>
+          </span>
+        </label>
+
+        <label className="flex items-start gap-3 rounded-lg border border-zinc-800 bg-zinc-950 p-3 sm:col-span-2">
+          <input
+            type="checkbox"
+            checked={includeTravelLabelsInText}
+            onChange={(e) => setIncludeTravelLabelsInText(e.target.checked)}
+            className="mt-1"
+          />
+
+          <span>
+            <span className="block text-sm text-zinc-100">
+              Include travel labels in copied text
+            </span>
+
+            <span className="block text-xs text-zinc-500">
+              Adds [travel from] and [next location] lines to the copyable text
+              output.
             </span>
           </span>
         </label>

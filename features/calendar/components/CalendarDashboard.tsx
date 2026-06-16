@@ -26,8 +26,8 @@ export function CalendarDashboard() {
   const [showCalendarEvents, setShowCalendarEvents] = useState(true);
   const [highlightConflicts, setHighlightConflicts] = useState(true);
   const [showCalendarAvailableQue, setShowCalendarAvailableQue] =
-    useState(false);
-  const [showCalendarQueCheck, setShowCalendarQueCheck] = useState(false);
+    useState(true);
+  const [showCalendarQueCheck, setShowCalendarQueCheck] = useState(true);
 
   const [showEventSummary, setShowEventSummary] = useState(false);
 
