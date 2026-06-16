@@ -158,6 +158,13 @@ export function CalendarDashboard() {
   return (
     <div className="space-y-6 sm:space-y-8">
       <section className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5 sm:p-6">
+        <div className="mb-4">
+          <h2 className="text-lg font-bold text-zinc-100">Calendar Controls</h2>
+          <p className="text-sm text-zinc-400">
+            Choose the month, refresh Teamup events, and control date display.
+          </p>
+        </div>
+
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <label className="space-y-2">
             <span className="text-sm text-zinc-400">Month</span>
@@ -215,69 +222,16 @@ export function CalendarDashboard() {
           </button>
         </div>
       </section>
-      <section className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5 sm:p-6">
-        <div className="mb-4">
-          <h2 className="text-lg font-bold text-zinc-100">Quick Insights</h2>
+
+      <section className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5">
+        <div className="mb-3">
+          <h2 className="text-lg font-bold text-zinc-100">Calendar Layers</h2>
           <p className="text-sm text-zinc-400">
-            Current filtered calendar overview.
+            Control what appears in the primary calendar.
           </p>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-          {quickInsights.map((item) => (
-            <div
-              key={item.label}
-              className="rounded-lg border border-zinc-800 bg-zinc-950 p-4"
-            >
-              <p className="text-xs uppercase tracking-wide text-zinc-500">
-                {item.label}
-              </p>
-              <p className={`mt-2 text-2xl font-bold ${item.tone}`}>
-                {item.value}
-              </p>
-            </div>
-          ))}
-        </div>
-      </section>
-      <section className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5 sm:p-6">
-        <button
-          type="button"
-          onClick={() => setShowEventSummary((current) => !current)}
-          className="flex w-full items-center justify-between"
-        >
-          <div className="text-left">
-            <h2 className="text-lg font-bold text-zinc-100">Event Summary</h2>
-            <p className="text-sm text-zinc-400">Optional monthly overview.</p>
-          </div>
-
-          <span className="text-sm text-zinc-400">
-            {showEventSummary ? "Hide" : "Show"}
-          </span>
-        </button>
-        {showEventSummary && (
-          <div className="mt-4">
-            <MonthlySummary
-              year={year}
-              month={month}
-              dateFormat={dateFormat}
-              embedded
-            />
-          </div>
-        )}
-      </section>
-      <div className="grid gap-6 xl:grid-cols-[500px_1fr]">
-        <OverlapSummary
-          events={filteredEvents}
-          dateFormat={dateFormat}
-          year={year}
-          month={month}
-        />
-        <AvailableQueFinder events={filteredEvents} dateFormat={dateFormat} />
-      </div>
-      <section className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5">
-        <h2 className="text-lg font-bold text-zinc-100">Calendar Layers</h2>
-
-        <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
           <label className="flex items-center gap-2 rounded-lg border border-zinc-800 bg-zinc-950 p-3 text-sm text-zinc-300">
             <input
               type="checkbox"
@@ -286,6 +240,7 @@ export function CalendarDashboard() {
             />
             Events
           </label>
+
           <label className="flex items-center gap-2 rounded-lg border border-zinc-800 bg-zinc-950 p-3 text-sm text-zinc-300">
             <input
               type="checkbox"
@@ -318,19 +273,93 @@ export function CalendarDashboard() {
           </label>
         </div>
       </section>
+
+      <CalendarMonthView
+        events={showCalendarEvents ? filteredEvents : []}
+        visualItems={calendarVisualItems}
+        highlightedEventIds={highlightedEventIds}
+        year={year}
+        month={month}
+        dateFormat={dateFormat}
+        onMonthChange={(nextYear, nextMonth) => {
+          setYear(nextYear);
+          setMonth(nextMonth);
+        }}
+      />
+
       <section className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5 sm:p-6">
-        <CalendarMonthView
-          events={showCalendarEvents ? filteredEvents : []}
-          visualItems={calendarVisualItems}
-          highlightedEventIds={highlightedEventIds}
-          year={year}
-          month={month}
-          dateFormat={dateFormat}
-          onMonthChange={(nextYear, nextMonth) => {
-            setYear(nextYear);
-            setMonth(nextMonth);
-          }}
-        />
+        <div className="mb-4">
+          <h2 className="text-lg font-bold text-zinc-100">Quick Insights</h2>
+          <p className="text-sm text-zinc-400">
+            Current filtered calendar overview.
+          </p>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          {quickInsights.map((item) => (
+            <div
+              key={item.label}
+              className="rounded-lg border border-zinc-800 bg-zinc-950 p-4"
+            >
+              <p className="text-xs uppercase tracking-wide text-zinc-500">
+                {item.label}
+              </p>
+              <p className={`mt-2 text-2xl font-bold ${item.tone}`}>
+                {item.value}
+              </p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="space-y-4">
+        <div>
+          <h2 className="text-lg font-bold text-zinc-100">Analysis Panels</h2>
+          <p className="text-sm text-zinc-400">
+            Availability, overlaps, and optional event overview.
+          </p>
+        </div>
+
+        <div className="grid gap-6 xl:grid-cols-[1fr_500px]">
+          <AvailableQueFinder events={filteredEvents} dateFormat={dateFormat} />
+
+          <OverlapSummary
+            events={filteredEvents}
+            dateFormat={dateFormat}
+            year={year}
+            month={month}
+          />
+        </div>
+
+        <section className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5 sm:p-6">
+          <button
+            type="button"
+            onClick={() => setShowEventSummary((current) => !current)}
+            className="flex w-full items-center justify-between"
+          >
+            <div className="text-left">
+              <h2 className="text-lg font-bold text-zinc-100">Event Summary</h2>
+              <p className="text-sm text-zinc-400">
+                Optional monthly overview.
+              </p>
+            </div>
+
+            <span className="text-sm text-zinc-400">
+              {showEventSummary ? "Hide" : "Show"}
+            </span>
+          </button>
+
+          {showEventSummary && (
+            <div className="mt-4">
+              <MonthlySummary
+                year={year}
+                month={month}
+                dateFormat={dateFormat}
+                embedded
+              />
+            </div>
+          )}
+        </section>
       </section>
     </div>
   );
