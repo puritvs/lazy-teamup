@@ -121,12 +121,17 @@ export function CalendarMonthView({
   }
   const days = useMemo(() => getMonthGrid(year, month), [year, month]);
   function isEndingItem(item: CalendarVisualItem, dateKey: string) {
+    const start = dayjs(item.start_dt);
+
     const end = dayjs(item.end_dt);
 
     const endForDisplay =
       end.hour() === 0 && end.minute() === 0 ? end.subtract(1, "minute") : end;
 
-    return endForDisplay.format("YYYY-MM-DD") === dateKey;
+    const isMultiDay =
+      start.format("YYYY-MM-DD") !== endForDisplay.format("YYYY-MM-DD");
+
+    return isMultiDay && endForDisplay.format("YYYY-MM-DD") === dateKey;
   }
   const allItems = useMemo<CalendarVisualItem[]>(() => {
     const eventItems: CalendarVisualItem[] = events.map((event) => {
