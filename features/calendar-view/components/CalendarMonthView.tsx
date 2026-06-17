@@ -80,7 +80,9 @@ function getItemPrefix(type: CalendarVisualItem["type"]) {
 function isConflictNotice(item: CalendarVisualItem) {
   return item.type === "conflict" && item.id.startsWith("conflict-notice-");
 }
-
+function isContinuedItem(item: CalendarVisualItem, dateKey: string) {
+  return dayjs(item.start_dt).format("YYYY-MM-DD") !== dateKey;
+}
 function getVisibleItems(dayItems: CalendarVisualItem[]) {
   const conflictNotices = dayItems.filter(isConflictNotice);
   const otherItems = dayItems.filter((item) => !isConflictNotice(item));
@@ -118,7 +120,14 @@ export function CalendarMonthView({
     setSelectedDate(null);
   }
   const days = useMemo(() => getMonthGrid(year, month), [year, month]);
+  function isEndingItem(item: CalendarVisualItem, dateKey: string) {
+    const end = dayjs(item.end_dt);
 
+    const endForDisplay =
+      end.hour() === 0 && end.minute() === 0 ? end.subtract(1, "minute") : end;
+
+    return endForDisplay.format("YYYY-MM-DD") === dateKey;
+  }
   const allItems = useMemo<CalendarVisualItem[]>(() => {
     const eventItems: CalendarVisualItem[] = events.map((event) => {
       const isConflict = highlightedEventIds.has(event.id);
@@ -315,13 +324,25 @@ export function CalendarMonthView({
                           "truncate rounded border px-2 py-1 text-[11px]",
                           getItemStyle(item.type),
                           isConflictNotice(item) ? "font-semibold" : "",
+                          isContinuedItem(item, dateKey)
+                            ? "italic opacity-80"
+                            : "",
+                          isEndingItem(item, dateKey)
+                            ? "ring-1 ring-white/20"
+                            : "",
                         ].join(" ")}
                         title={item.description ?? item.title}
                       >
                         {getItemPrefix(item.type)}{" "}
                         {isConflictNotice(item)
                           ? item.title
-                          : `${dayjs(item.start_dt).format("HH:mm")} ${item.title}`}
+                          : isContinuedItem(item, dateKey)
+                            ? isEndingItem(item, dateKey)
+                              ? `↳ ${item.title} ✓`
+                              : `↳ ${item.title}`
+                            : isEndingItem(item, dateKey)
+                              ? `${dayjs(item.start_dt).format("HH:mm")} ${item.title} ✓`
+                              : `${dayjs(item.start_dt).format("HH:mm")} ${item.title}`}
                       </div>
                     ))}
 

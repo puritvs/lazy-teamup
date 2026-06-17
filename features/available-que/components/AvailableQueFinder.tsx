@@ -282,7 +282,7 @@ export function AvailableQueFinder({ events, dateFormat }: Props) {
     return availableDays.flatMap((day) =>
       day.slots.map((slot) => ({
         id: `available-que-${day.date}-${slot.start}`,
-        type: "available-que",
+        type: "available-que" as const,
         title: `Available Que (${slot.start}-${slot.end})`,
         start_dt: `${day.date}T${slot.start}:00`,
         end_dt: `${day.date}T${slot.end}:00`,
