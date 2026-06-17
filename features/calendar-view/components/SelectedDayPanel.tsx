@@ -69,7 +69,7 @@ export function SelectedDayPanel({
   const filteredSelectedItems = getFilteredItems(selectedItems, detailTab);
 
   return (
-    <div className="mt-4 rounded-lg border border-zinc-800 bg-zinc-950 p-4">
+    <div className="rounded-lg border border-zinc-800 bg-zinc-950 p-4 lg:sticky lg:top-4">
       <div className="mb-3 flex items-center justify-between gap-3">
         <p className="font-semibold text-zinc-100">
           {dayjs(selectedDate).format("DD-MM-YYYY")}

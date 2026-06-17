@@ -233,115 +233,138 @@ export function CalendarMonthView({
         </span>
       </div>
 
-      <div className="grid grid-cols-7 gap-px overflow-hidden rounded-lg border border-zinc-800 bg-zinc-800">
-        {WEEKDAYS.map((day) => (
-          <div
-            key={day}
-            className="bg-zinc-950 px-2 py-2 text-center text-xs font-semibold text-zinc-400"
-          >
-            {day}
-          </div>
-        ))}
+      <div className="lg:flex lg:gap-4">
+        <div className="min-w-0 flex-1">
+          <div className="grid grid-cols-7 gap-px overflow-hidden rounded-lg border border-zinc-800 bg-zinc-800">
+            {WEEKDAYS.map((day) => (
+              <div
+                key={day}
+                className="bg-zinc-950 px-2 py-2 text-center text-xs font-semibold text-zinc-400"
+              >
+                {day}
+              </div>
+            ))}
 
-        {days.map((day) => {
-          const dateKey = day.format("YYYY-MM-DD");
-          const dayItems = itemsByDate.get(dateKey) ?? [];
-          const visibleItems = getVisibleItems(dayItems);
+            {days.map((day) => {
+              const dateKey = day.format("YYYY-MM-DD");
+              const dayItems = itemsByDate.get(dateKey) ?? [];
+              const visibleItems = getVisibleItems(dayItems);
 
-          const hiddenItems = dayItems.filter(
-            (item) =>
-              !visibleItems.some((visibleItem) => visibleItem.id === item.id),
-          );
+              const hiddenItems = dayItems.filter(
+                (item) =>
+                  !visibleItems.some(
+                    (visibleItem) => visibleItem.id === item.id,
+                  ),
+              );
 
-          const hiddenConflictCount = hiddenItems.filter(
-            (item) => item.type === "conflict" && !isConflictNotice(item),
-          ).length;
-          const hiddenItemCount = Math.max(
-            0,
-            dayItems.length - visibleItems.length,
-          );
-          const hasHiddenItems = hiddenItemCount > 0;
-          const isCurrentMonth = day.month() + 1 === month;
-          const isSelected = selectedDate === dateKey;
-          const isToday = dateKey === todayKey;
+              const hiddenConflictCount = hiddenItems.filter(
+                (item) => item.type === "conflict" && !isConflictNotice(item),
+              ).length;
 
-          return (
-            <button
-              key={dateKey}
-              type="button"
-              onClick={() => {
-                setSelectedDate(dateKey);
-                setDetailTab("all");
-              }}
-              className={[
-                "min-h-28 bg-zinc-950 p-2 text-left align-top transition hover:bg-zinc-900",
-                !isCurrentMonth ? "opacity-40" : "",
-                isToday
-                  ? "bg-zinc-900 ring-1 ring-amber-400/70 ring-inset"
-                  : "",
-                isSelected ? "ring-2 ring-white ring-inset" : "",
-              ].join(" ")}
-            >
-              <div className="mb-2 flex items-center justify-between">
-                <span
+              const hiddenItemCount = Math.max(
+                0,
+                dayItems.length - visibleItems.length,
+              );
+
+              const hasHiddenItems = hiddenItemCount > 0;
+              const isCurrentMonth = day.month() + 1 === month;
+              const isSelected = selectedDate === dateKey;
+              const isToday = dateKey === todayKey;
+
+              return (
+                <button
+                  key={dateKey}
+                  type="button"
+                  onClick={() => {
+                    setSelectedDate(dateKey);
+                    setDetailTab("all");
+                  }}
                   className={[
-                    "text-xs font-semibold",
+                    "min-h-28 bg-zinc-950 p-2 text-left align-top transition hover:bg-zinc-900",
+                    !isCurrentMonth ? "opacity-40" : "",
                     isToday
-                      ? "rounded-full bg-amber-400 px-2 py-0.5 text-black"
-                      : "text-zinc-300",
+                      ? "bg-zinc-900 ring-1 ring-amber-400/70 ring-inset"
+                      : "",
+                    isSelected ? "ring-2 ring-white ring-inset" : "",
                   ].join(" ")}
                 >
-                  {day.date()}
-                </span>
+                  <div className="mb-2 flex items-center justify-between">
+                    <span
+                      className={[
+                        "text-xs font-semibold",
+                        isToday
+                          ? "rounded-full bg-amber-400 px-2 py-0.5 text-black"
+                          : "text-zinc-300",
+                      ].join(" ")}
+                    >
+                      {day.date()}
+                    </span>
 
-                {isToday && (
-                  <span className="text-[10px] font-medium uppercase text-amber-300">
-                    Today
-                  </span>
-                )}
-              </div>
-
-              <div className="space-y-1">
-                {visibleItems.map((item) => (
-                  <div
-                    key={`${dateKey}-${item.id}`}
-                    className={[
-                      "truncate rounded border px-2 py-1 text-[11px]",
-                      getItemStyle(item.type),
-                      isConflictNotice(item) ? "font-semibold" : "",
-                    ].join(" ")}
-                    title={item.description ?? item.title}
-                  >
-                    {getItemPrefix(item.type)}{" "}
-                    {isConflictNotice(item)
-                      ? item.title
-                      : `${dayjs(item.start_dt).format("HH:mm")} ${item.title}`}
+                    {isToday && (
+                      <span className="text-[10px] font-medium uppercase text-amber-300">
+                        Today
+                      </span>
+                    )}
                   </div>
-                ))}
 
-                {hasHiddenItems && (
-                  <div className="rounded border border-amber-800 bg-amber-950/60 px-2 py-1 text-[11px] font-medium text-amber-100">
-                    +{hiddenItemCount} hidden items
-                    {hiddenConflictCount > 0
-                      ? ` • ${hiddenConflictCount} conflicts`
-                      : ""}
+                  <div className="space-y-1">
+                    {visibleItems.map((item) => (
+                      <div
+                        key={`${dateKey}-${item.id}`}
+                        className={[
+                          "truncate rounded border px-2 py-1 text-[11px]",
+                          getItemStyle(item.type),
+                          isConflictNotice(item) ? "font-semibold" : "",
+                        ].join(" ")}
+                        title={item.description ?? item.title}
+                      >
+                        {getItemPrefix(item.type)}{" "}
+                        {isConflictNotice(item)
+                          ? item.title
+                          : `${dayjs(item.start_dt).format("HH:mm")} ${item.title}`}
+                      </div>
+                    ))}
+
+                    {hasHiddenItems && (
+                      <div className="rounded border border-amber-800 bg-amber-950/60 px-2 py-1 text-[11px] font-medium text-amber-100">
+                        +{hiddenItemCount} hidden items
+                        {hiddenConflictCount > 0
+                          ? ` • ${hiddenConflictCount} conflicts`
+                          : ""}
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-            </button>
-          );
-        })}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {selectedDate && (
+          <div className="hidden lg:block lg:w-[360px] lg:shrink-0">
+            <SelectedDayPanel
+              selectedDate={selectedDate}
+              selectedItems={selectedItems}
+              detailTab={detailTab}
+              setDetailTab={setDetailTab}
+              onClear={() => setSelectedDate(null)}
+              dateFormat={dateFormat}
+            />
+          </div>
+        )}
       </div>
 
       {selectedDate && (
-        <SelectedDayPanel
-          selectedDate={selectedDate}
-          selectedItems={selectedItems}
-          detailTab={detailTab}
-          setDetailTab={setDetailTab}
-          onClear={() => setSelectedDate(null)}
-          dateFormat={dateFormat}
-        />
+        <div className="lg:hidden">
+          <SelectedDayPanel
+            selectedDate={selectedDate}
+            selectedItems={selectedItems}
+            detailTab={detailTab}
+            setDetailTab={setDetailTab}
+            onClear={() => setSelectedDate(null)}
+            dateFormat={dateFormat}
+          />
+        </div>
       )}
     </section>
   );
