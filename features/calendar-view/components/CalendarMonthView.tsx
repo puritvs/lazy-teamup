@@ -341,7 +341,7 @@ export function CalendarMonthView({
         </div>
 
         {selectedDate && (
-          <div className="hidden lg:block lg:w-[360px] lg:shrink-0">
+          <div className="hidden lg:block lg:w-[420px] lg:shrink-0">
             <SelectedDayPanel
               selectedDate={selectedDate}
               selectedItems={selectedItems}

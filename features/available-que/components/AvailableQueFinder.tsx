@@ -2,9 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { findAvailableQue } from "../services/findAvailableQue";
-import { EventForAvailability } from "../types";
+import { EventForAvailability, AvailableQueDay } from "../types";
 import { DateDisplayFormat, formatDate } from "@/utils/date";
 import { useGlobalSettings } from "@/features/settings/GlobalSettingsProvider";
+import { CalendarVisualItem } from "@/features/calendar-view/types";
 import {
   DEFAULT_LOCATION,
   extractLocationFromTitle,
@@ -260,7 +261,7 @@ export function AvailableQueFinder({ events, dateFormat }: Props) {
     travelBuffers,
     includeTravelBuffersInCalculation,
   ]);
-  const displayedAvailableDays = useMemo(() => {
+  const displayedAvailableDays = useMemo<AvailableQueDay[]>(() => {
     if (!showOnlyTravelSlots) {
       return availableDays;
     }
@@ -276,23 +277,27 @@ export function AvailableQueFinder({ events, dateFormat }: Props) {
       .filter((day) => day.slots.length > 0);
   }, [availableDays, showOnlyTravelSlots, events]);
   function availableQueToCalendarItems(
-    availableDays: {
-      date: string;
-      slots: {
-        start: string;
-        end: string;
-        durationMinutes: number;
-      }[];
-    }[],
-  ) {
+    availableDays: AvailableQueDay[],
+  ): CalendarVisualItem[] {
     return availableDays.flatMap((day) =>
       day.slots.map((slot) => ({
-        id: `available-que-${day.date}-${slot.start}-${slot.end}`,
-        type: "available-que" as const,
-        title: `Available Que (${formatDuration(slot.durationMinutes)})`,
+        id: `available-que-${day.date}-${slot.start}`,
+        type: "available-que",
+        title: `Available Que (${slot.start}-${slot.end})`,
         start_dt: `${day.date}T${slot.start}:00`,
         end_dt: `${day.date}T${slot.end}:00`,
-        description: `${slot.start} - ${slot.end}`,
+
+        description: [
+          slot.travelFromLocation
+            ? `Travel from ${slot.travelFromLocation} (+${slot.travelFromMinutes}m)`
+            : null,
+
+          slot.nextLocation
+            ? `Next location ${slot.nextLocation} (+${slot.nextLocationMinutes}m)`
+            : null,
+        ]
+          .filter(Boolean)
+          .join("\n"),
       })),
     );
   }

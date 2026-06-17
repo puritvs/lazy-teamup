@@ -4,14 +4,18 @@ export type EventForAvailability = {
   start_dt: string;
   end_dt: string;
 };
-
 export type AvailableQueSlot = {
   date: string;
   start: string;
   end: string;
   durationMinutes: number;
-};
 
+  travelFromLocation?: string;
+  travelFromMinutes?: number;
+
+  nextLocation?: string;
+  nextLocationMinutes?: number;
+};
 export type AvailableQueDay = {
   date: string;
   slots: AvailableQueSlot[];

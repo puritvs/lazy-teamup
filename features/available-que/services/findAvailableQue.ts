@@ -107,11 +107,38 @@ function buildSlot({
     return null;
   }
 
+  const travelFromMinutes = includeTravelBuffers
+    ? getTravelBufferMinutes(previousEvent, "from", travelBuffers)
+    : 0;
+
+  const nextLocationMinutes = includeTravelBuffers
+    ? getTravelBufferMinutes(nextEvent, "to", travelBuffers)
+    : 0;
+
+  const travelFromLocation = previousEvent
+    ? extractLocationFromTitle(previousEvent.title)
+    : undefined;
+
+  const nextLocation = nextEvent
+    ? extractLocationFromTitle(nextEvent.title)
+    : undefined;
+
   return {
     date,
     start: formatTime(adjustedStart),
     end: formatTime(adjustedEnd),
     durationMinutes,
+
+    travelFromLocation:
+      travelFromLocation !== DEFAULT_LOCATION ? travelFromLocation : undefined,
+
+    travelFromMinutes:
+      travelFromLocation !== DEFAULT_LOCATION ? travelFromMinutes : undefined,
+
+    nextLocation: nextLocation !== DEFAULT_LOCATION ? nextLocation : undefined,
+
+    nextLocationMinutes:
+      nextLocation !== DEFAULT_LOCATION ? nextLocationMinutes : undefined,
   };
 }
 
