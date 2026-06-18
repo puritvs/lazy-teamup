@@ -16,6 +16,26 @@ export function OverlapConflictCard({ group, dateFormat }: Props) {
   const multiDayCount = group.events.filter((event) =>
     isMultiDay(event.start_dt, event.end_dt),
   ).length;
+  const multiDayEvents = group.events.filter((event) => {
+    return event.start_dt.slice(0, 10) !== event.end_dt.slice(0, 10);
+  });
+
+  const spanStart =
+    multiDayEvents.length > 0
+      ? multiDayEvents.reduce(
+          (earliest, event) =>
+            event.start_dt < earliest ? event.start_dt : earliest,
+          multiDayEvents[0].start_dt,
+        )
+      : null;
+
+  const spanEnd =
+    multiDayEvents.length > 0
+      ? multiDayEvents.reduce(
+          (latest, event) => (event.end_dt > latest ? event.end_dt : latest),
+          multiDayEvents[0].end_dt,
+        )
+      : null;
 
   return (
     <div
@@ -42,9 +62,10 @@ export function OverlapConflictCard({ group, dateFormat }: Props) {
             {group.events.length} events
           </span>
 
-          {multiDayCount > 0 && (
+          {multiDayCount > 0 && spanStart && spanEnd && (
             <span className="rounded-full bg-violet-950 px-2 py-1 text-xs text-violet-200">
-              {multiDayCount} multi-day
+              {multiDayCount} multi-day · {formatDate(spanStart, dateFormat)} →{" "}
+              {formatDate(spanEnd, dateFormat)}
             </span>
           )}
         </div>
