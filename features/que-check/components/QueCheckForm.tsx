@@ -115,8 +115,8 @@ const QUE_CHECK_STEPS: { value: QueCheckStep; label: string }[] = [
 const sampleMessage = `Title: BUS Rehearsal
 Location: Sunray
 
-Start: 14-06-2026 22:30
-End: 15-06-2026 00:30
+Start: 14/06/2026 22:30
+End: 15/06/2026 00:30
 
 Start: 25-06-2026 19:00
 End: 25-06-2026 22:00
@@ -128,11 +128,11 @@ const QUE_CHECK_AI_PROMPT = `Convert the following queue/schedule request into L
 Rules:
 1. Extract the event title.
 2. Extract the location if available.
-3. Convert all dates to DD-MM-YYYY.
+3. Convert all dates to DD/MM/YYYY.
 4. Convert all times to 24-hour HH:mm format.
 5. Every event must contain:
-   - Start: DD-MM-YYYY HH:mm
-   - End: DD-MM-YYYY HH:mm
+   - Start: DD/MM/YYYY HH:mm
+   - End: DD/MM/YYYY HH:mm
 6. If an event crosses midnight, End must contain the next day's date.
 7. If a location is not explicitly specified, omit the Location line entirely.
 8. Do not guess locations.
@@ -145,11 +145,11 @@ Required output format:
 Title: Event Name
 Location: Location Name
 
-Start: DD-MM-YYYY HH:mm
-End: DD-MM-YYYY HH:mm
+Start: DD/MM/YYYY HH:mm
+End: DD/MM/YYYY HH:mm
 
-Start: DD-MM-YYYY HH:mm
-End: DD-MM-YYYY HH:mm
+Start: DD/MM/YYYY HH:mm
+End: DD/MM/YYYY HH:mm
 
 Input:
 `;
@@ -204,7 +204,7 @@ Location Rules:
 
 Time Rules:
 
-* Convert dates to DD-MM-YYYY.
+* Convert dates to DD/MM/YYYY.
 * Use 24-hour HH:mm format.
 * If an event crosses midnight, End must use the following date.
 * Any row belonging to the following Inclusive Sections:
@@ -218,8 +218,8 @@ Time Rules:
   must always be treated as a full-day event regardless of any displayed time.
 
   Output:
-  Start: DD-MM-YYYY 00:00
-  End: next day DD-MM-YYYY 00:00
+  Start: DD/MM/YYYY 00:00
+  End: next day DD/MM/YYYY 00:00
 
 Output Format:
 For every included event, output exactly:
@@ -227,8 +227,8 @@ For every included event, output exactly:
 Title: [QUE or inclusive section name]
 Location: [PLACE]
 
-Start: DD-MM-YYYY HH:mm
-End: DD-MM-YYYY HH:mm
+Start: DD/MM/YYYY HH:mm
+End: DD/MM/YYYY HH:mm
 
 Requirements:
 
@@ -278,8 +278,9 @@ function buildQueCheckText(
 function formatDateInputToQueDate(date: string) {
   if (!date) return "";
 
-  const [year, month, day] = date.split("-");
-  return `${day}-${month}-${year}`;
+  const [year, month, day] = date.split("/");
+
+  return `${day}/${month}/${year}`;
 }
 export function QueCheckForm({ events, dateFormat }: Props) {
   const [message, setMessage] = useState(sampleMessage);
@@ -730,13 +731,13 @@ export function QueCheckForm({ events, dateFormat }: Props) {
               <pre className="whitespace-pre-wrap">{`Title: Default Event Name
 Location: Optional Default Location
 
-Start: DD-MM-YYYY HH:mm
-End: DD-MM-YYYY HH:mm
+Start: DD/MM/YYYY HH:mm
+End: DD/MM/YYYY HH:mm
 
 Title: Different Event Name
 Location: Different Location
-Start: DD-MM-YYYY HH:mm
-End: DD-MM-YYYY HH:mm`}</pre>
+Start: DD/MM/YYYY HH:mm
+End: DD/MM/YYYY HH:mm`}</pre>
             </div>
 
             <button

@@ -1,4 +1,4 @@
-import { formatEventDateRange } from "@/utils/date";
+import { formatDate, formatEventDateRange } from "@/utils/date";
 import { DateDisplayFormat } from "@/utils/date";
 import { OverlapGroup } from "../services/findOverlappingEvents";
 
@@ -57,7 +57,8 @@ export function OverlapTimeline({ group, dateFormat }: Props) {
 
           const left = ((start - group.startTime) / totalDuration) * 100;
           const width = ((end - start) / totalDuration) * 100;
-
+          const startDate = event.start_dt.slice(0, 10);
+          const endDate = event.end_dt.slice(0, 10);
           return (
             <div key={event.id} className="space-y-1">
               <div className="flex items-center gap-2">
@@ -67,7 +68,8 @@ export function OverlapTimeline({ group, dateFormat }: Props) {
 
                 {isMultiDay && (
                   <span className="rounded-full bg-violet-950 px-2 py-0.5 text-[10px] text-violet-200">
-                    {dayCount}D
+                    {formatDate(startDate, dateFormat)} →
+                    {formatDate(endDate, dateFormat)}
                   </span>
                 )}
               </div>

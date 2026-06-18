@@ -179,7 +179,7 @@ function buildCopyableAvailableQueText(
       });
 
       return `${shouldAddWeekSpacing ? "\n" : ""}${[
-        formatDate(day.date, "day-month-year"),
+        formatDate(day.date, "day/month/year"),
         ...slotLines,
       ].join("\n")}`;
     })

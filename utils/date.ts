@@ -1,4 +1,4 @@
-export type DateDisplayFormat = "day-month-year" | "month-name";
+export type DateDisplayFormat = "day/month/year" | "month-name";
 
 export function getMonthName(month: number): string {
   const months = [
@@ -30,7 +30,7 @@ export function getMonthRange(year: number, month: number) {
 }
 export function formatDate(
   dateInput: string | Date,
-  format: DateDisplayFormat = "day-month-year",
+  format: DateDisplayFormat = "day/month/year",
 ): string {
   const date = typeof dateInput === "string" ? new Date(dateInput) : dateInput;
 
@@ -46,13 +46,13 @@ export function formatDate(
     return `${day} ${monthName} ${year}`;
   }
 
-  return `${day}-${month}-${year}`;
+  return `${day}/${month}/${year}`;
 }
 
 export function formatEventDateRange(
   startDt: string,
   endDt: string,
-  format: DateDisplayFormat = "day-month-year",
+  format: DateDisplayFormat = "day/month/year",
 ): string {
   const start = new Date(startDt);
   const end = new Date(endDt);

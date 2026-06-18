@@ -41,8 +41,8 @@ export type GlobalSettingsContextValue = {
   calendarYear: number;
   setCalendarYear: Dispatch<SetStateAction<number>>;
 
-  dateFormat: "day-month-year" | "month-name";
-  setDateFormat: Dispatch<SetStateAction<"day-month-year" | "month-name">>;
+  dateFormat: "day/month/year" | "month-name";
+  setDateFormat: Dispatch<SetStateAction<"day/month/year" | "month-name">>;
 
   rawEvents: TeamupEvent[];
   loadingEvents: boolean;

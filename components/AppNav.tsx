@@ -104,12 +104,12 @@ export function AppNav() {
             <select
               value={dateFormat}
               onChange={(e) =>
-                setDateFormat(e.target.value as "day-month-year" | "month-name")
+                setDateFormat(e.target.value as "day/month/year" | "month-name")
               }
               className="rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 outline-none"
             >
-              <option value="day-month-year">01-06-2026</option>
-              <option value="month-name">01 Jun 2026</option>
+              <option value="day/month/year">day/month/year</option>
+              <option value="month-name">day "month-name" year</option>
             </select>
 
             <button

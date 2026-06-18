@@ -24,8 +24,8 @@ export function GlobalSettingsProvider({ children }: { children: ReactNode }) {
 
   const [calendarMonth, setCalendarMonth] = useState(today.getMonth() + 1);
   const [calendarYear, setCalendarYear] = useState(today.getFullYear());
-  const [dateFormat, setDateFormat] = useState<"day-month-year" | "month-name">(
-    "day-month-year",
+  const [dateFormat, setDateFormat] = useState<"day/month/year" | "month-name">(
+    "day/month/year",
   );
 
   const [events, setEvents] = useState<TeamupEvent[]>([]);

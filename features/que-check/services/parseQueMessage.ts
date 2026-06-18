@@ -1,10 +1,11 @@
 import { ParsedQueEvent } from "../types";
-
 function parseDateTimeToISO(dateTime: string) {
-  const match = dateTime.match(/^(\d{2})-(\d{2})-(\d{4})\s+(\d{2}):(\d{2})$/);
+  const match = dateTime.match(
+    /^(\d{2})[-\/](\d{2})[-\/](\d{4})\s+(\d{2}):(\d{2})$/,
+  );
 
   if (!match) {
-    throw new Error("Date time must be in DD-MM-YYYY HH:mm format.");
+    throw new Error("Date time must be in DD/MM/YYYY HH:mm format.");
   }
 
   const [, day, month, year, hour, minute] = match;
@@ -15,7 +16,6 @@ function parseDateTimeToISO(dateTime: string) {
     dateTime: `${year}-${month}-${day}T${hour}:${minute}:00`,
   };
 }
-
 export function parseQueMessage(message: string): ParsedQueEvent[] {
   const blocks = message
     .split(/\n\s*\n/)
