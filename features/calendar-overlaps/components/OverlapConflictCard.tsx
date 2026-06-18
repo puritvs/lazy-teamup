@@ -6,8 +6,17 @@ type Props = {
   group: OverlapGroup;
   dateFormat: DateDisplayFormat;
 };
+function isMultiDay(start: string, end: string) {
+  const startDate = start.slice(0, 10);
+  const endDate = end.slice(0, 10);
 
+  return startDate !== endDate;
+}
 export function OverlapConflictCard({ group, dateFormat }: Props) {
+  const multiDayCount = group.events.filter((event) =>
+    isMultiDay(event.start_dt, event.end_dt),
+  ).length;
+
   return (
     <div
       className={[
@@ -28,9 +37,17 @@ export function OverlapConflictCard({ group, dateFormat }: Props) {
           <p className="text-xs text-zinc-500">{group.severity} severity</p>
         </div>
 
-        <span className="rounded-full bg-red-950 px-2 py-1 text-xs text-red-200">
-          {group.events.length} events
-        </span>
+        <div className="flex gap-2">
+          <span className="rounded-full bg-red-950 px-2 py-1 text-xs text-red-200">
+            {group.events.length} events
+          </span>
+
+          {multiDayCount > 0 && (
+            <span className="rounded-full bg-violet-950 px-2 py-1 text-xs text-violet-200">
+              {multiDayCount} multi-day
+            </span>
+          )}
+        </div>
       </div>
 
       <OverlapTimeline group={group} dateFormat={dateFormat} />
