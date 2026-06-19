@@ -1,5 +1,6 @@
 import { CalendarVisualItem } from "../types";
-
+import dayjs from "dayjs";
+export type MultiDayState = "single-day" | "start" | "middle" | "end";
 export type MultiDayEvent = {
   item: CalendarVisualItem;
   startDate: string;
@@ -38,4 +39,26 @@ export function getMultiDayEvents(
         spanDays,
       };
     });
+}
+
+export function getMultiDayState(
+  item: CalendarVisualItem,
+  dateKey: string,
+): MultiDayState {
+  const startDate = dayjs(item.start_dt).format("YYYY-MM-DD");
+  const endDate = dayjs(item.end_dt).format("YYYY-MM-DD");
+
+  if (startDate === endDate) {
+    return "single-day";
+  }
+
+  if (dateKey === startDate) {
+    return "start";
+  }
+
+  if (dateKey === endDate) {
+    return "end";
+  }
+
+  return "middle";
 }
