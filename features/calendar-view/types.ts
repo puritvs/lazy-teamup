@@ -13,3 +13,10 @@ export type CalendarVisualItem = {
   description?: string;
   sourceId?: string;
 };
+
+export type MultiDaySegment = {
+  itemId: string;
+  weekIndex: number;
+  startColumn: number;
+  spanColumns: number;
+};

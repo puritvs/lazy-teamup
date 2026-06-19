@@ -5,6 +5,7 @@ import dayjs from "dayjs";
 import { DateDisplayFormat } from "@/utils/date";
 import { CalendarVisualItem } from "../types";
 import { DetailTab, SelectedDayPanel } from "./SelectedDayPanel";
+import { getMultiDayEvents } from "../utils/getMultiDayEvents";
 
 type TeamupEvent = {
   id: string;
@@ -133,6 +134,18 @@ export function CalendarMonthView({
 
     return isMultiDay && endForDisplay.format("YYYY-MM-DD") === dateKey;
   }
+  function isStartingItem(item: CalendarVisualItem, dateKey: string) {
+    return dayjs(item.start_dt).format("YYYY-MM-DD") === dateKey;
+  }
+
+  function spansBeyondDay(item: CalendarVisualItem, dateKey: string) {
+    const end = dayjs(item.end_dt);
+
+    const endForDisplay =
+      end.hour() === 0 && end.minute() === 0 ? end.subtract(1, "minute") : end;
+
+    return endForDisplay.format("YYYY-MM-DD") !== dateKey;
+  }
   const allItems = useMemo<CalendarVisualItem[]>(() => {
     const eventItems: CalendarVisualItem[] = events.map((event) => {
       const isConflict = highlightedEventIds.has(event.id);
@@ -180,7 +193,8 @@ export function CalendarMonthView({
 
     return map;
   }, [allItems]);
-
+  const multiDayEvents = getMultiDayEvents(allItems);
+  console.log(multiDayEvents);
   const selectedItems = selectedDate
     ? (itemsByDate.get(selectedDate) ?? [])
     : [];
@@ -193,6 +207,7 @@ export function CalendarMonthView({
   const queCheckCount = visualItems.filter(
     (item) => item.type === "que-check",
   ).length;
+
   return (
     <section className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5">
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -329,11 +344,9 @@ export function CalendarMonthView({
                           "truncate rounded border px-2 py-1 text-[11px]",
                           getItemStyle(item.type),
                           isConflictNotice(item) ? "font-semibold" : "",
-                          isContinuedItem(item, dateKey)
-                            ? "italic opacity-80"
-                            : "",
-                          isEndingItem(item, dateKey)
-                            ? "ring-1 ring-white/20"
+                          isContinuedItem(item, dateKey) &&
+                          !isEndingItem(item, dateKey)
+                            ? "font-bold text-center"
                             : "",
                         ].join(" ")}
                         title={item.description ?? item.title}
@@ -341,13 +354,15 @@ export function CalendarMonthView({
                         {getItemPrefix(item.type)}{" "}
                         {isConflictNotice(item)
                           ? item.title
-                          : isContinuedItem(item, dateKey)
-                            ? isEndingItem(item, dateKey)
-                              ? `↳ ${item.title} ✓`
-                              : `↳ ${item.title}`
-                            : isEndingItem(item, dateKey)
-                              ? `${dayjs(item.start_dt).format("HH:mm")} ${item.title} ✓`
-                              : `${dayjs(item.start_dt).format("HH:mm")} ${item.title}`}
+                          : isStartingItem(item, dateKey) &&
+                              spansBeyondDay(item, dateKey)
+                            ? `▶ ${item.title}`
+                            : isContinuedItem(item, dateKey) &&
+                                isEndingItem(item, dateKey)
+                              ? `◀`
+                              : isContinuedItem(item, dateKey)
+                                ? "━━━━━━━━━━"
+                                : `${dayjs(item.start_dt).format("HH:mm")} ${item.title}`}
                       </div>
                     ))}
 
