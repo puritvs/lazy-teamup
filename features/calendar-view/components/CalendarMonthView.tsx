@@ -6,6 +6,7 @@ import { DateDisplayFormat } from "@/utils/date";
 import { CalendarVisualItem } from "../types";
 import { DetailTab, SelectedDayPanel } from "./SelectedDayPanel";
 import { getMultiDayEvents } from "../utils/getMultiDayEvents";
+import { getCalendarWeeks } from "../utils/getCalendarWeeks";
 
 type TeamupEvent = {
   id: string;
@@ -193,8 +194,7 @@ export function CalendarMonthView({
 
     return map;
   }, [allItems]);
-  const multiDayEvents = getMultiDayEvents(allItems);
-  console.log(multiDayEvents);
+  const multiDayEvents = useMemo(() => getMultiDayEvents(allItems), [allItems]);
   const selectedItems = selectedDate
     ? (itemsByDate.get(selectedDate) ?? [])
     : [];
@@ -207,7 +207,7 @@ export function CalendarMonthView({
   const queCheckCount = visualItems.filter(
     (item) => item.type === "que-check",
   ).length;
-
+  const weeks = getCalendarWeeks(days);
   return (
     <section className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5">
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -274,7 +274,7 @@ export function CalendarMonthView({
               </div>
             ))}
 
-            {days.map((day) => {
+            {weeks.flat().map((day) => {
               const dateKey = day.format("YYYY-MM-DD");
               const dayItems = itemsByDate.get(dateKey) ?? [];
               const visibleItems = getVisibleItems(dayItems);
