@@ -28,30 +28,71 @@ function getMultiDayInfo(startDt: string, endDt: string) {
     dayCount,
   };
 }
-function formatTime(time: number) {
-  const date = new Date(time);
-
-  return `${String(date.getHours()).padStart(2, "0")}:${String(
-    date.getMinutes(),
-  ).padStart(2, "0")}`;
-}
 
 export function OverlapTimeline({ group, dateFormat }: Props) {
   const totalDuration = group.endTime - group.startTime;
+  const startDate = new Date(group.startTime);
+  const endDate = new Date(group.endTime);
 
+  const dayBoundaries: number[] = [];
+
+  const cursor = new Date(
+    startDate.getFullYear(),
+    startDate.getMonth(),
+    startDate.getDate() + 1,
+  );
+
+  while (cursor.getTime() < group.endTime) {
+    dayBoundaries.push(cursor.getTime());
+
+    cursor.setDate(cursor.getDate() + 1);
+  }
   return (
     <div className="space-y-3">
-      <div className="flex justify-between text-xs text-zinc-500">
-        <span>{formatTime(group.startTime)}</span>
-        <span>{formatTime(group.endTime)}</span>
-      </div>
+      <div className="relative h-5 text-xs text-zinc-500">
+        <div className="flex justify-between">
+          <span>{formatDate(startDate.toISOString(), dateFormat)}</span>
+          <span>{formatDate(endDate.toISOString(), dateFormat)}</span>
+        </div>
+        {dayBoundaries.map((boundary) => {
+          const left = ((boundary - group.startTime) / totalDuration) * 100;
 
+          return (
+            <div
+              key={boundary}
+              className="absolute top-0 bottom-0 w-px bg-violet-500/60"
+              style={{
+                left: `${left}%`,
+              }}
+            />
+          );
+        })}
+      </div>
+      {dayBoundaries.length > 0 && (
+        <div className="relative h-4 text-[10px] text-violet-300">
+          {dayBoundaries.map((boundary) => {
+            const left = ((boundary - group.startTime) / totalDuration) * 100;
+
+            return (
+              <span
+                key={boundary}
+                className="absolute -translate-x-1/2"
+                style={{
+                  left: `${left}%`,
+                }}
+              >
+                {new Date(boundary).toLocaleDateString("en-GB", {
+                  day: "2-digit",
+                  month: "short",
+                })}
+              </span>
+            );
+          })}
+        </div>
+      )}
       <div className="space-y-2">
         {group.events.map((event) => {
-          const { isMultiDay, dayCount } = getMultiDayInfo(
-            event.start_dt,
-            event.end_dt,
-          );
+          const { isMultiDay } = getMultiDayInfo(event.start_dt, event.end_dt);
           const start = new Date(event.start_dt).getTime();
           const end = new Date(event.end_dt).getTime();
 
@@ -75,6 +116,20 @@ export function OverlapTimeline({ group, dateFormat }: Props) {
               </div>
 
               <div className="relative h-3 rounded-full bg-zinc-800">
+                {dayBoundaries.map((boundary) => {
+                  const dividerLeft =
+                    ((boundary - group.startTime) / totalDuration) * 100;
+
+                  return (
+                    <div
+                      key={boundary}
+                      className="absolute top-0 bottom-0 z-10 w-px bg-white/60"
+                      style={{
+                        left: `${dividerLeft}%`,
+                      }}
+                    />
+                  );
+                })}
                 <div
                   className={[
                     "absolute top-0 h-3 rounded-full",
