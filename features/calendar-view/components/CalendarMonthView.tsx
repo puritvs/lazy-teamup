@@ -7,6 +7,7 @@ import { CalendarVisualItem } from "../types";
 import { DetailTab, SelectedDayPanel } from "./SelectedDayPanel";
 import { getMultiDayEvents } from "../utils/getMultiDayEvents";
 import { getCalendarWeeks } from "../utils/getCalendarWeeks";
+import { buildMultiDaySegments } from "../utils/buildMultiDaySegments";
 
 type TeamupEvent = {
   id: string;
@@ -194,7 +195,7 @@ export function CalendarMonthView({
 
     return map;
   }, [allItems]);
-  const multiDayEvents = useMemo(() => getMultiDayEvents(allItems), [allItems]);
+  // const multiDayEvents = useMemo(() => getMultiDayEvents(allItems), [allItems]);
   const selectedItems = selectedDate
     ? (itemsByDate.get(selectedDate) ?? [])
     : [];
@@ -208,6 +209,11 @@ export function CalendarMonthView({
     (item) => item.type === "que-check",
   ).length;
   const weeks = getCalendarWeeks(days);
+
+  const multiDayEvents = getMultiDayEvents(allItems);
+
+  const multiDaySegments = buildMultiDaySegments(weeks, multiDayEvents);
+  console.log(multiDaySegments);
   return (
     <section className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5">
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
