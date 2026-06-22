@@ -11,9 +11,36 @@ export type MultiDayEvent = {
 export function getMultiDayEvents(
   items: CalendarVisualItem[],
 ): MultiDayEvent[] {
+  items.forEach((item) => {
+    if (item.title.includes("faviq")) {
+      console.log({
+        title: item.title,
+        start_dt: item.start_dt,
+        end_dt: item.end_dt,
+        startDate: dayjs(item.start_dt).format("YYYY-MM-DD"),
+        endDate: dayjs(item.end_dt).format("YYYY-MM-DD"),
+      });
+    }
+  });
   return items
     .filter((item) => {
-      return item.start_dt.slice(0, 10) !== item.end_dt.slice(0, 10);
+      const isMultiDay =
+        dayjs(item.start_dt).format("YYYY-MM-DD") !==
+        dayjs(item.end_dt).format("YYYY-MM-DD");
+
+      if (!isMultiDay) {
+        return false;
+      }
+
+      if (item.id.startsWith("conflict-notice-")) {
+        return false;
+      }
+
+      return (
+        item.type !== "available-que" &&
+        item.type !== "que-check" &&
+        item.type !== "conflict"
+      );
     })
     .map((item) => {
       const start = new Date(item.start_dt);
@@ -34,8 +61,8 @@ export function getMultiDayEvents(
 
       return {
         item,
-        startDate: item.start_dt.slice(0, 10),
-        endDate: item.end_dt.slice(0, 10),
+        startDate: dayjs(item.start_dt).format("YYYY-MM-DD"),
+        endDate: dayjs(item.end_dt).format("YYYY-MM-DD"),
         spanDays,
       };
     });

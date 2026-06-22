@@ -8,7 +8,15 @@ import { DetailTab, SelectedDayPanel } from "./SelectedDayPanel";
 import { getMultiDayEvents } from "../utils/getMultiDayEvents";
 import { getCalendarWeeks } from "../utils/getCalendarWeeks";
 import { buildMultiDaySegments } from "../utils/buildMultiDaySegments";
+function isMultiDayItem(item: CalendarVisualItem) {
+  const start = dayjs(item.start_dt);
+  const end = dayjs(item.end_dt);
 
+  const endForDisplay =
+    end.hour() === 0 && end.minute() === 0 ? end.subtract(1, "minute") : end;
+
+  return start.format("YYYY-MM-DD") !== endForDisplay.format("YYYY-MM-DD");
+}
 type TeamupEvent = {
   id: string;
   title: string;
@@ -216,6 +224,7 @@ export function CalendarMonthView({
     () => buildMultiDaySegments(weeks, multiDayEvents),
     [weeks, multiDayEvents],
   );
+
   const segmentsByWeek = useMemo(() => {
     const map = new Map<number, MultiDaySegment[]>();
 
@@ -227,6 +236,7 @@ export function CalendarMonthView({
 
     return map;
   }, [multiDaySegments]);
+
   return (
     <section className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5">
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -336,7 +346,9 @@ export function CalendarMonthView({
 
                   {week.map((day) => {
                     const dateKey = day.format("YYYY-MM-DD");
-                    const dayItems = itemsByDate.get(dateKey) ?? [];
+                    const dayItems = (itemsByDate.get(dateKey) ?? []).filter(
+                      (item) => !isMultiDayItem(item),
+                    );
                     const visibleItems = getVisibleItems(dayItems);
 
                     const hiddenItems = dayItems.filter(

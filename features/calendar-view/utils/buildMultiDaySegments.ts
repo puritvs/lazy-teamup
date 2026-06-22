@@ -1,51 +1,101 @@
 import dayjs from "dayjs";
 import { MultiDaySegment } from "../types";
 import { MultiDayEvent } from "./getMultiDayEvents";
+function overlaps(startA: number, endA: number, startB: number, endB: number) {
+  return !(endA < startB || startA > endB);
+}
+function findAvailableLane(
+  existingSegments: MultiDaySegment[],
+  startColumn: number,
+  endColumn: number,
+) {
+  let lane = 0;
 
+  while (true) {
+    const collision = existingSegments.some(
+      (segment) =>
+        segment.lane === lane &&
+        overlaps(
+          segment.startColumn,
+          segment.endColumn,
+          startColumn,
+          endColumn,
+        ),
+    );
+
+    if (!collision) {
+      return lane;
+    }
+
+    lane++;
+  }
+}
 export function buildMultiDaySegments(
   weeks: dayjs.Dayjs[][],
   multiDayEvents: MultiDayEvent[],
 ): MultiDaySegment[] {
   const segments: MultiDaySegment[] = [];
-  multiDayEvents.forEach((event) => {
-    const weekIndex = weeks.findIndex((week) =>
-      week.some((day) => day.format("YYYY-MM-DD") === event.startDate),
-    );
+  weeks.forEach((week, weekIndex) => {
+    const weekSegments: MultiDaySegment[] = [];
 
-    if (weekIndex === -1) {
-      return;
-    }
+    multiDayEvents.forEach((event) => {
+      const weekStart = week[0];
+      const weekEnd = week[6];
 
-    const week = weeks[weekIndex];
+      const eventStart = dayjs(event.startDate);
+      const eventEnd = dayjs(event.endDate);
 
-    const startColumn = week.findIndex(
-      (day) => day.format("YYYY-MM-DD") === event.startDate,
-    );
+      const overlapsWeek =
+        !eventEnd.isBefore(weekStart, "day") &&
+        !eventStart.isAfter(weekEnd, "day");
 
-    const endColumn = week.findIndex(
-      (day) => day.format("YYYY-MM-DD") === event.endDate,
-    );
+      if (!overlapsWeek) {
+        return;
+      }
 
-    if (startColumn === -1 || endColumn === -1) {
-      return;
-    }
+      const visibleStart = eventStart.isAfter(weekStart, "day")
+        ? eventStart
+        : weekStart;
 
-    segments.push({
-      itemId: event.item.id,
-      title: event.item.title,
+      const visibleEnd = eventEnd.isBefore(weekEnd, "day") ? eventEnd : weekEnd;
 
-      weekIndex,
+      const startColumn = visibleStart.diff(weekStart, "day");
+      const endColumn = visibleEnd.diff(weekStart, "day");
+      const lane = findAvailableLane(weekSegments, startColumn, endColumn);
+      segments.push({
+        itemId: event.item.id,
+        title: event.item.title,
 
-      startColumn,
-      endColumn,
+        weekIndex,
 
-      spanColumns: endColumn - startColumn + 1,
+        startColumn,
+        endColumn,
 
-      isStart: true,
-      isEnd: true,
+        spanColumns: endColumn - startColumn + 1,
 
-      item: event.item,
-      lane: 0,
+        isStart: visibleStart.isSame(eventStart, "day"),
+        isEnd: visibleEnd.isSame(eventEnd, "day"),
+
+        item: event.item,
+        lane,
+      });
+      weekSegments.push({
+        itemId: event.item.id,
+        title: event.item.title,
+
+        weekIndex,
+
+        startColumn,
+        endColumn,
+
+        spanColumns: endColumn - startColumn + 1,
+
+        isStart: visibleStart.isSame(eventStart, "day"),
+        isEnd: visibleEnd.isSame(eventEnd, "day"),
+
+        item: event.item,
+        lane,
+      });
     });
   });
   const segmentsByWeek = new Map<number, MultiDaySegment[]>();
