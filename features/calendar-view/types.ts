@@ -28,4 +28,5 @@ export type MultiDaySegment = {
   isEnd: boolean;
 
   item: CalendarVisualItem;
+  lane: number;
 };

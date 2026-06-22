@@ -7,7 +7,6 @@ export function buildMultiDaySegments(
   multiDayEvents: MultiDayEvent[],
 ): MultiDaySegment[] {
   const segments: MultiDaySegment[] = [];
-
   multiDayEvents.forEach((event) => {
     const weekIndex = weeks.findIndex((week) =>
       week.some((day) => day.format("YYYY-MM-DD") === event.startDate),
@@ -46,7 +45,35 @@ export function buildMultiDaySegments(
       isEnd: true,
 
       item: event.item,
+      lane: 0,
     });
+  });
+  const segmentsByWeek = new Map<number, MultiDaySegment[]>();
+
+  for (const segment of segments) {
+    const current = segmentsByWeek.get(segment.weekIndex) ?? [];
+    current.push(segment);
+    segmentsByWeek.set(segment.weekIndex, current);
+  }
+
+  segmentsByWeek.forEach((weekSegments) => {
+    const laneEndColumns: number[] = [];
+
+    weekSegments
+      .sort((a, b) => a.startColumn - b.startColumn)
+      .forEach((segment) => {
+        let lane = 0;
+
+        while (
+          laneEndColumns[lane] !== undefined &&
+          laneEndColumns[lane] >= segment.startColumn
+        ) {
+          lane++;
+        }
+
+        laneEndColumns[lane] = segment.endColumn;
+        segment.lane = lane;
+      });
   });
 
   return segments;

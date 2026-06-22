@@ -3,7 +3,7 @@
 import { Fragment, useMemo, useState } from "react";
 import dayjs from "dayjs";
 import { DateDisplayFormat } from "@/utils/date";
-import { CalendarVisualItem } from "../types";
+import { CalendarVisualItem, MultiDaySegment } from "../types";
 import { DetailTab, SelectedDayPanel } from "./SelectedDayPanel";
 import { getMultiDayEvents } from "../utils/getMultiDayEvents";
 import { getCalendarWeeks } from "../utils/getCalendarWeeks";
@@ -216,7 +216,17 @@ export function CalendarMonthView({
     () => buildMultiDaySegments(weeks, multiDayEvents),
     [weeks, multiDayEvents],
   );
-  console.log(multiDaySegments);
+  const segmentsByWeek = useMemo(() => {
+    const map = new Map<number, MultiDaySegment[]>();
+
+    for (const segment of multiDaySegments) {
+      const current = map.get(segment.weekIndex) ?? [];
+      current.push(segment);
+      map.set(segment.weekIndex, current);
+    }
+
+    return map;
+  }, [multiDaySegments]);
   return (
     <section className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5">
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -283,9 +293,7 @@ export function CalendarMonthView({
               </div>
             ))}
             {weeks.map((week, weekIndex) => {
-              const weekSegments = multiDaySegments.filter(
-                (segment) => segment.weekIndex === weekIndex,
-              );
+              const weekSegments = segmentsByWeek.get(weekIndex) ?? [];
 
               return (
                 <Fragment key={weekIndex}>
