@@ -295,25 +295,45 @@ export function CalendarMonthView({
             {weeks.map((week, weekIndex) => {
               const weekSegments = segmentsByWeek.get(weekIndex) ?? [];
 
+              const maxLane =
+                weekSegments.length > 0
+                  ? Math.max(...weekSegments.map((segment) => segment.lane))
+                  : -1;
+
+              const laneCount = maxLane + 1;
+
               return (
                 <Fragment key={weekIndex}>
                   {weekSegments.length > 0 && (
                     <div className="col-span-7 bg-zinc-950 px-1 py-1">
-                      <div className="grid grid-cols-7 gap-px">
-                        {weekSegments.map((segment) => (
-                          <div
-                            key={`${segment.itemId}-${segment.weekIndex}`}
-                            className="rounded bg-violet-700 px-2 py-1 text-xs text-white"
-                            style={{
-                              gridColumn: `${segment.startColumn + 1} / ${segment.endColumn + 2}`,
-                            }}
-                          >
-                            {segment.title}
-                          </div>
-                        ))}
+                      <div className="space-y-1">
+                        {Array.from({ length: laneCount }).map((_, lane) => {
+                          const laneSegments = weekSegments.filter(
+                            (segment) => segment.lane === lane,
+                          );
+
+                          return (
+                            <div key={lane} className="grid grid-cols-7 gap-px">
+                              {laneSegments.map((segment) => (
+                                <div
+                                  key={`${segment.itemId}-${segment.weekIndex}`}
+                                  className="rounded bg-violet-700 px-2 py-1 text-xs text-white"
+                                  style={{
+                                    gridColumn: `${segment.startColumn + 1} / ${
+                                      segment.endColumn + 2
+                                    }`,
+                                  }}
+                                >
+                                  {segment.title}
+                                </div>
+                              ))}
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   )}
+
                   {week.map((day) => {
                     const dateKey = day.format("YYYY-MM-DD");
                     const dayItems = itemsByDate.get(dateKey) ?? [];
