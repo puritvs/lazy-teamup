@@ -210,9 +210,12 @@ export function CalendarMonthView({
   ).length;
   const weeks = getCalendarWeeks(days);
 
-  const multiDayEvents = getMultiDayEvents(allItems);
+  const multiDayEvents = useMemo(() => getMultiDayEvents(allItems), [allItems]);
 
-  const multiDaySegments = buildMultiDaySegments(weeks, multiDayEvents);
+  const multiDaySegments = useMemo(
+    () => buildMultiDaySegments(weeks, multiDayEvents),
+    [weeks, multiDayEvents],
+  );
   console.log(multiDaySegments);
   return (
     <section className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5">
@@ -286,22 +289,23 @@ export function CalendarMonthView({
 
               return (
                 <Fragment key={weekIndex}>
-                  <div className="col-span-7 bg-zinc-950 px-1 py-1">
-                    <div className="grid grid-cols-7 gap-px">
-                      {weekSegments.map((segment) => (
-                        <div
-                          key={`${segment.itemId}-${segment.weekIndex}`}
-                          className="rounded bg-violet-700 px-2 py-1 text-xs text-white"
-                          style={{
-                            gridColumn: `${segment.startColumn + 1} / ${segment.endColumn + 2}`,
-                          }}
-                        >
-                          {segment.title}
-                        </div>
-                      ))}
+                  {weekSegments.length > 0 && (
+                    <div className="col-span-7 bg-zinc-950 px-1 py-1">
+                      <div className="grid grid-cols-7 gap-px">
+                        {weekSegments.map((segment) => (
+                          <div
+                            key={`${segment.itemId}-${segment.weekIndex}`}
+                            className="rounded bg-violet-700 px-2 py-1 text-xs text-white"
+                            style={{
+                              gridColumn: `${segment.startColumn + 1} / ${segment.endColumn + 2}`,
+                            }}
+                          >
+                            {segment.title}
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-
+                  )}
                   {week.map((day) => {
                     const dateKey = day.format("YYYY-MM-DD");
                     const dayItems = itemsByDate.get(dateKey) ?? [];
